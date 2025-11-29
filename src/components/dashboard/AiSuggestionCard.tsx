@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTradingData } from "@/context/TradingDataProvider";
@@ -16,6 +16,30 @@ export function AiSuggestionCard() {
   const [suggestion, setSuggestion] = useState<AutomatedTradeSuggestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const isTradeSignalActive = (strategy === 'strategy1' && suggestion?.tradeSuggestion !== 'NO ENTRY') || (strategy === 'strategy2' && analysis.entryCondition !== 'NO ENTRY');
+  const prevSignalState = useRef(false);
+
+  const playSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A6 note
+      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (e) {
+      console.error("Could not play sound:", e);
+    }
+  };
 
   useEffect(() => {
     if (strategy === 'strategy2') {
@@ -43,12 +67,18 @@ export function AiSuggestionCard() {
       }
     };
 
-    // Only run for strategy 1 and when analysis is available
     if (strategy === 'strategy1') {
-        const timer = setTimeout(getSuggestion, 10000); // Debounce AI calls
+        const timer = setTimeout(getSuggestion, 10000); 
         return () => clearTimeout(timer);
     }
   }, [analysis, strategy]);
+
+  useEffect(() => {
+    if (isTradeSignalActive && !prevSignalState.current) {
+        playSound();
+    }
+    prevSignalState.current = isTradeSignalActive;
+  }, [isTradeSignalActive]);
   
   const handleTrade = () => {
     if (!isLoggedIn && !isSimulationMode) {
@@ -105,8 +135,6 @@ export function AiSuggestionCard() {
         default: return 'bg-gray-500';
     }
   }
-
-  const isTradeSignalActive = (strategy === 'strategy1' && suggestion?.tradeSuggestion !== 'NO ENTRY') || (strategy === 'strategy2' && analysis.entryCondition !== 'NO ENTRY');
 
   const renderContent = () => {
      if (strategy === 'strategy2') {
