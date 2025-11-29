@@ -59,7 +59,11 @@ export const useDerivWebSocket = () => {
         };
 
         ws.current.onerror = (error) => {
-            console.error("WebSocket error:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Connection Error',
+                description: 'Unable to connect to Deriv services. Please check your internet connection and try again.'
+            });
             ws.current?.close();
         };
 
