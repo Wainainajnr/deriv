@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,14 +16,13 @@ export function AiSuggestionCard() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // For Strategy 2, we don't use the LLM, we use the explicit entry condition.
     if (strategy === 'strategy2') {
         setSuggestion(null);
         return;
     }
 
     const getSuggestion = async () => {
-      if (analysis.lastDigit === null) return;
+      if (analysis.lastDigit === null || strategy !== 'strategy1') return;
       setIsLoading(true);
       try {
         const input = {
@@ -41,8 +41,11 @@ export function AiSuggestionCard() {
       }
     };
 
-    const timer = setTimeout(getSuggestion, 10000); // Debounce AI calls
-    return () => clearTimeout(timer);
+    // Only run for strategy 1 and when analysis is available
+    if (strategy === 'strategy1') {
+        const timer = setTimeout(getSuggestion, 10000); // Debounce AI calls
+        return () => clearTimeout(timer);
+    }
   }, [analysis, strategy]);
   
   const handleTrade = () => {
@@ -101,34 +104,30 @@ export function AiSuggestionCard() {
     }
   }
 
+  const isTradeSignalActive = (strategy === 'strategy1' && suggestion?.tradeSuggestion !== 'NO ENTRY') || (strategy === 'strategy2' && analysis.entryCondition !== 'NO ENTRY');
+
   const renderContent = () => {
      if (strategy === 'strategy2') {
         return (
-            <>
-                <p className="text-muted-foreground">Strategy 2 uses explicit entry rules. See explanation below.</p>
-                {analysis.entryCondition !== 'NO ENTRY' && (
-                     <div className="p-4 bg-primary/20 text-primary rounded-md text-center font-bold text-xl animate-pulse">
-                        ENTRY SIGNAL: {analysis.entryCondition}
-                    </div>
-                )}
-                 <Button 
-                    onClick={handleTrade}
-                    disabled={analysis.entryCondition === 'NO ENTRY'}
-                    className="w-full mt-4"
-                >
-                    Execute Trade
-                </Button>
-            </>
+            <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[150px]">
+                <p className="text-muted-foreground">Strategy 2 uses explicit entry rules based on the conditions below.</p>
+                {analysis.entryCondition === 'NO ENTRY' && <p className="text-muted-foreground">Waiting for signal...</p>}
+            </div>
         )
      }
       
     if (isLoading) {
-      return <Loader2 className="h-10 w-10 animate-spin text-primary" />;
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[150px]">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-muted-foreground">Shakes FX is analyzing...</p>
+        </div>
+      );
     }
 
     if (suggestion) {
       return (
-        <>
+        <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[150px]">
           <div className="flex items-center gap-2">
             <span className={`w-3 h-3 rounded-full ${getConfidenceColor()}`}></span>
             <span className="text-xs uppercase font-medium">{suggestion.confidenceLevel} Confidence</span>
@@ -139,20 +138,16 @@ export function AiSuggestionCard() {
           <p className="text-sm text-muted-foreground px-4">
             {suggestion.reasoning}
           </p>
-          <Button 
-            onClick={handleTrade}
-            disabled={suggestion.tradeSuggestion === 'NO ENTRY'}
-            className="w-full mt-4"
-          >
-            Execute Trade
-          </Button>
-        </>
+        </div>
       );
     }
     
-    return <p className="text-muted-foreground">Waiting for market data...</p>;
+    return (
+        <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[150px]">
+            <p className="text-muted-foreground">Waiting for market data...</p>
+        </div>
+    );
   }
-
 
   return (
     <Card className="glass-card w-full">
@@ -165,8 +160,17 @@ export function AiSuggestionCard() {
             {strategy === 'strategy1' ? 'Powered by Shakes FX' : 'Manual Signal based on Strategy 2'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
+      <CardContent>
         {renderContent()}
+        {isTradeSignalActive && (
+             <Button 
+                onClick={handleTrade}
+                className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold animate-pulse"
+                size="lg"
+            >
+                Execute Trade
+            </Button>
+        )}
       </CardContent>
     </Card>
   );
