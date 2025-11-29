@@ -126,27 +126,38 @@ export interface OpenContract {
     contract_id: number;
     buy_price: number;
     payout: number;
-    contract_type: string;
+    contract_type?: string;
     currency: string;
-    current_spot: number;
-    current_spot_time: number;
-    entry_spot: number;
-    entry_tick_time: number;
-    expiry_time: number;
-    is_expired: 0 | 1;
-    is_settleable: 0 | 1;
-    is_sold: 0 | 1;
-    is_valid_to_sell: 0 | 1;
+    current_spot?: number;
+    current_spot_time?: number;
+    entry_spot?: number;
+    entry_tick_time?: number;
+    expiry_time?: number;
+    is_expired?: 0 | 1;
+    is_settleable?: 0 | 1;
+    is_sold?: 0 | 1;
+    is_valid_to_sell?: 0 | 1;
     longcode: string;
     profit: number;
-    profit_percentage: number;
-    purchase_time: number;
+    profit_percentage?: number;
+    purchase_time?: number;
     shortcode: string;
     status: 'won' | 'lost' | 'open';
-    transaction_ids: { buy: number; sell?: number };
-    underlying: string;
+    transaction_ids?: { buy: number; sell?: number };
+    underlying?: string;
     validation_error?: string;
 }
+
+export interface SimulatedContract {
+    contract_id: number;
+    buy_price: number;
+    payout: number;
+    contract_type: 'DIGITEVEN' | 'DIGITODD';
+    entry_tick_time: number;
+    shortcode: string;
+    status: 'open';
+}
+
 
 export interface PortfolioResponse {
     portfolio: {

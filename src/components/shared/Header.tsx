@@ -14,15 +14,26 @@ import { ChevronDown, LogOut, CircleUserRound, Link } from "lucide-react";
 import { useTradingData } from "@/context/TradingDataProvider";
 import { Logo } from "../icons/Logo";
 import Image from "next/image";
+import { Switch } from "../ui/switch";
+import { Label } from "../ui/label";
 
 export function Header() {
-  const { accounts, selectedAccount, logout, selectAccount, isLoggedIn, login } = useAuth();
+  const { accounts, selectedAccount, logout, selectAccount, isLoggedIn, login, isSimulationMode, toggleSimulationMode } = useAuth();
   const { balance, currency } = useTradingData();
+
+  const handleSimModeChange = () => {
+    toggleSimulationMode();
+  };
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-xl md:px-6">
       <Logo />
       <div className="ml-auto flex items-center gap-4">
+        <div className="flex items-center space-x-2">
+            <Switch id="simulation-mode" checked={isSimulationMode} onCheckedChange={handleSimModeChange} />
+            <Label htmlFor="simulation-mode">Simulation</Label>
+        </div>
+
         {isLoggedIn && selectedAccount ? (
           <>
             <div className="flex items-center gap-2 text-sm font-medium">
@@ -73,10 +84,12 @@ export function Header() {
             </DropdownMenu>
           </>
         ) : (
-          <Button onClick={login}>
-            <Link className="mr-2 h-4 w-4" />
-            Connect with Deriv
-          </Button>
+          !isSimulationMode && (
+            <Button onClick={login}>
+                <Link className="mr-2 h-4 w-4" />
+                Connect with Deriv
+            </Button>
+          )
         )}
       </div>
     </header>

@@ -8,9 +8,11 @@ import { useTradingData } from "@/context/TradingDataProvider";
 import { automatedTradeSuggestions, type AutomatedTradeSuggestionsOutput } from "@/ai/flows/automated-trade-suggestions";
 import { Loader2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthProvider";
 
 export function AiSuggestionCard() {
-  const { analysis, buyContract, strategy, isLoggedIn, stake } = useTradingData();
+  const { analysis, buyContract, strategy, stake } = useTradingData();
+  const { isSimulationMode, isLoggedIn } = useAuth();
   const [suggestion, setSuggestion] = useState<AutomatedTradeSuggestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -49,11 +51,11 @@ export function AiSuggestionCard() {
   }, [analysis, strategy]);
   
   const handleTrade = () => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn && !isSimulationMode) {
         toast({
             variant: "destructive",
             title: "Not Logged In",
-            description: "Please connect your Deriv account to trade.",
+            description: "Please connect your Deriv account or enable Simulation Mode to trade.",
         });
         return;
     }
@@ -168,7 +170,7 @@ export function AiSuggestionCard() {
             className={`w-full mt-4 font-bold transition-all ${
                 isTradeSignalActive 
                     ? 'bg-green-600 hover:bg-green-700 text-white animate-pulse' 
-                    : 'bg-gray-500/20 text-muted-foreground'
+                    : 'bg-gray-500/20 text-muted-foreground cursor-not-allowed'
             }`}
             size="lg"
         >

@@ -12,7 +12,7 @@ export interface DigitAnalysis {
 
 export type Strategy = 'strategy1' | 'strategy2';
 
-function getLastDigit(price: number): number {
+export function getLastDigit(price: number): number {
   const priceStr = price.toString();
   return parseInt(priceStr[priceStr.length - 1], 10);
 }
@@ -82,6 +82,7 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
     // Entry point rule: Wait for 3+ 'O', then enter on first 'E'
     const last4ticks = digits.slice(0, 4);
     const isEntryPointTriggered = 
+        last4ticks.length === 4 &&
         last4ticks[0] % 2 === 0 && // current is EVEN
         last4ticks[1] % 2 !== 0 && // previous 3 were ODD
         last4ticks[2] % 2 !== 0 &&
@@ -116,6 +117,7 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
     // Entry point rule: Wait for 3+ 'E', then enter on first 'O'
     const last4ticks = digits.slice(0, 4);
     const isEntryPointTriggered = 
+        last4ticks.length === 4 &&
         last4ticks[0] % 2 !== 0 && // current is ODD
         last4ticks[1] % 2 === 0 && // previous 3 were EVEN
         last4ticks[2] % 2 === 0 &&

@@ -21,6 +21,8 @@ interface AuthContextType {
   logout: () => void;
   selectAccount: (loginid: string) => void;
   setTokenAndAccounts: (token: string, accounts: DerivAccount[]) => void;
+  isSimulationMode: boolean;
+  toggleSimulationMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<DerivAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<DerivAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSimulationMode, setIsSimulationMode] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -39,6 +42,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = localStorage.getItem("deriv_token");
       const storedAccounts = localStorage.getItem("deriv_accounts");
       const storedSelectedAccount = localStorage.getItem("deriv_selected_account");
+      const storedSimMode = localStorage.getItem("deriv_sim_mode");
+      
+      if (storedSimMode !== null) {
+        setIsSimulationMode(JSON.parse(storedSimMode));
+      } else {
+        // If no sim mode is stored, default to true unless a token is present
+        setIsSimulationMode(!storedToken);
+      }
 
       if (storedToken && storedAccounts) {
         const parsedAccounts: DerivAccount[] = JSON.parse(storedAccounts);
@@ -56,12 +67,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("deriv_token");
       localStorage.removeItem("deriv_accounts");
       localStorage.removeItem("deriv_selected_account");
+      localStorage.removeItem("deriv_sim_mode");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const login = () => {
+    toggleSimulationMode(false); // Turn off simulation mode when logging in
     const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${DERIV_APP_ID}&l=EN&brand=deriv`;
     window.location.href = oauthUrl;
   };
@@ -74,6 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setAccounts([]);
     setSelectedAccount(null);
+    // When logging out, we can decide whether to enable simulation mode or not.
+    // Let's enable it by default.
+    toggleSimulationMode(true);
     setIsLoading(false);
     router.push("/login");
   }, [router]);
@@ -97,16 +113,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (account) {
       setSelectedAccount(account);
       localStorage.setItem("deriv_selected_account", JSON.stringify(account));
-      // Force a re-authentication with the new account token if logic requires it
-      // For now, we assume the initial token works for all accounts.
-      // A full implementation might need to request a new token for the selected account.
-      // For simplicity, we just refresh the page to trigger re-authorization in WebSocket
       window.location.reload();
     }
   };
 
+  const toggleSimulationMode = useCallback((forceState?: boolean) => {
+    setIsSimulationMode(prev => {
+        const newState = forceState ?? !prev;
+        localStorage.setItem("deriv_sim_mode", JSON.stringify(newState));
+        // If we are turning simulation mode off, but we're not logged in, redirect to login
+        if (newState === false && !token) {
+            router.push('/login');
+        }
+        if (newState === true) {
+            // If turning simulation mode ON, clear the selected real account details
+            // to avoid confusion, but don't log out fully
+            setSelectedAccount(null);
+            localStorage.removeItem("deriv_selected_account");
+        }
+        window.location.reload(); // Reload to reset contexts
+        return newState;
+    });
+  }, [token, router]);
+
   const value = {
-    isLoggedIn: !isLoading && !!token,
+    isLoggedIn: !isLoading && !!token && !isSimulationMode,
     isLoading,
     token,
     accounts,
@@ -115,6 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     selectAccount,
     setTokenAndAccounts,
+    isSimulationMode,
+    toggleSimulationMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
