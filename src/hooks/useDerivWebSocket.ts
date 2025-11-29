@@ -11,12 +11,14 @@ export const useDerivWebSocket = () => {
     const ws = useRef<WebSocket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [lastMessage, setLastMessage] = useState<DerivMessage | null>(null);
-    const { token } = useAuth();
+    const { token, isLoggedIn } = useAuth();
     const { toast } = useToast();
     const messageCallbacks = useRef<Map<string, (msg: DerivMessage) => void>>(new Map());
 
     const connect = useCallback(() => {
-        if (ws.current && ws.current.readyState === WebSocket.OPEN) return;
+        if (!isLoggedIn || (ws.current && ws.current.readyState === WebSocket.OPEN)) {
+            return;
+        }
 
         ws.current = new WebSocket(DERIV_WEBSOCKET_URL);
 
@@ -53,12 +55,15 @@ export const useDerivWebSocket = () => {
             setIsConnected(false);
             // Optional: implement auto-reconnect logic
             setTimeout(() => {
-                console.log("Reconnecting WebSocket...");
-                connect();
+                if (isLoggedIn) {
+                    console.log("Reconnecting WebSocket...");
+                    connect();
+                }
             }, 5000);
         };
 
         ws.current.onerror = (error) => {
+            console.error("WebSocket error:", error);
             toast({
                 variant: 'destructive',
                 title: 'Connection Error',
@@ -67,10 +72,13 @@ export const useDerivWebSocket = () => {
             ws.current?.close();
         };
 
-    }, [token, toast]);
+    }, [token, toast, isLoggedIn]);
 
     useEffect(() => {
-        connect();
+        if(isLoggedIn) {
+            connect();
+        }
+        
         const interval = setInterval(() => {
             if (ws.current?.readyState === WebSocket.OPEN) {
                 ws.current.send(JSON.stringify({ ping: 1 }));
@@ -79,9 +87,11 @@ export const useDerivWebSocket = () => {
 
         return () => {
             clearInterval(interval);
-            ws.current?.close();
+            if (ws.current?.readyState === WebSocket.OPEN) {
+                ws.current?.close();
+            }
         };
-    }, [connect]);
+    }, [connect, isLoggedIn]);
 
 
     const sendMessage = useCallback((message: object) => {
