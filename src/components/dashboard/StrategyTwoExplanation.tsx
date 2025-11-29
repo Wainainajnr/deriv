@@ -44,8 +44,8 @@ export function StrategyTwoExplanation() {
                     {[1, 3, 5, 7, 9].map(d => <Badge key={d} variant="outline" className="text-accent border-accent">{d}</Badge>)}
                 </div>
                  <div className="flex flex-wrap gap-2 mt-2">
-                    <Badge variant="secondary">Volatility 10 (1s)</Badge>
-                    <Badge variant="secondary">Volatility 25 (1s)</Badge>
+                    <Badge variant="secondary">Volatility 10 (1s) Index</Badge>
+                    <Badge variant="secondary">Volatility 25 (1s) Index</Badge>
                     <Badge variant="secondary">Volatility 50 Index</Badge>
                 </div>
             </div>
