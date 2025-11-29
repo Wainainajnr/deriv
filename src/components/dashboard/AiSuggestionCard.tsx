@@ -33,7 +33,7 @@ export function AiSuggestionCard() {
       }
     };
 
-    const timer = setTimeout(getSuggestion, 1000); // Debounce AI calls
+    const timer = setTimeout(getSuggestion, 10000); // Debounce AI calls
     return () => clearTimeout(timer);
   }, [analysis]);
   
