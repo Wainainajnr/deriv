@@ -32,23 +32,14 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
 
   const lastDigit = getLastDigit(ticks[0].quote);
   const digits = ticks.map(tick => getLastDigit(tick.quote));
-  const analysisTicks = digits.slice(0, 30);
-  const totalAnalysisTicks = analysisTicks.length;
-
-  let evenCount = 0;
-  let oddCount = 0;
+  
   const digitCounts = Array(10).fill(0);
-
-  digits.forEach(digit => {
-    if (digit % 2 === 0) {
-      evenCount++;
-    } else {
-      oddCount++;
-    }
-    digitCounts[digit]++;
+  ticks.forEach(tick => {
+      const digit = getLastDigit(tick.quote);
+      digitCounts[digit]++;
   });
 
-  const total = digits.length;
+  const total = ticks.length;
   const evenWinRate = total > 0 ? (digits.filter(d => d % 2 === 0).length / total) * 100 : 0;
   const oddWinRate = total > 0 ? (digits.filter(d => d % 2 !== 0).length / total) * 100 : 0;
 
@@ -59,6 +50,7 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
   
   const patternHistory = digits.slice(0, 20).map(d => (d % 2 === 0 ? 'E' : 'O')).join(' ');
   
+  const analysisTicks = digits.slice(0, 30);
   let patternDominance = 'None';
   const recentEvenCount = analysisTicks.filter(d => d % 2 === 0).length;
   const recentOddCount = analysisTicks.filter(d => d % 2 !== 0).length;
@@ -72,34 +64,48 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
   let signalStrength: 'weak' | 'medium' | 'strong' = 'weak';
   let entryCondition: 'ENTER EVEN NOW' | 'ENTER ODD NOW' | 'NO ENTRY' = 'NO ENTRY';
 
+  const totalDigits = digitCounts.reduce((a, b) => a + b, 0);
+  const digitPercentages = digitCounts.map(count => totalDigits > 0 ? (count / totalDigits) * 100 : 0);
+
   if (strategy === 'strategy1') {
     // ✅ EVEN STRATEGY (Strategy 1)
-    const dominancePercentage = Math.max(evenWinRate, oddWinRate);
+    const evenDigits = [0, 2, 4, 6, 8];
+    const evenDigitWithHighestPercentage = Math.max(...evenDigits.map(d => digitPercentages[d])) === Math.max(...digitPercentages);
+    const twoEvenDigitsAbove11 = evenDigits.filter(d => digitPercentages[d] > 11).length >= 2;
+    const last20patterns = digits.slice(0, 20);
+    const evenDominatingLast20 = last20patterns.filter(d => d % 2 === 0).length > last20patterns.filter(d => d % 2 !== 0).length;
+    
+    // Entry point rule: Wait for 3+ 'O', then enter on first 'E'
+    const last4ticks = digits.slice(0, 4);
+    const isEntryPointTriggered = 
+        last4ticks[0] % 2 === 0 && // current is EVEN
+        last4ticks[1] % 2 !== 0 && // previous 3 were ODD
+        last4ticks[2] % 2 !== 0 &&
+        last4ticks[3] % 2 !== 0;
+
+    if (
+        evenWinRate >= 55 &&
+        evenDominatingLast20 &&
+        evenDigitWithHighestPercentage &&
+        twoEvenDigitsAbove11 &&
+        isEntryPointTriggered
+    ) {
+        entryCondition = 'ENTER EVEN NOW';
+    }
+
+    const dominancePercentage = evenWinRate;
     if (dominancePercentage > 60) signalStrength = 'medium';
     if (dominancePercentage > 70) signalStrength = 'strong';
-    
-    const lastFiveTicks = digits.slice(0, 5);
-    if (
-      evenWinRate >= 55 &&
-      patternDominance === 'Evens' &&
-      recentEvenCount > recentOddCount &&
-      lastFiveTicks.filter(d => d % 2 === 0).length >= 4
-    ) {
-      entryCondition = 'ENTER EVEN NOW';
-    }
+
   } else if (strategy === 'strategy2') {
     // ✅ ODD STRATEGY (Strategy 2)
     const oddDigits = [1, 3, 5, 7, 9];
-    const totalDigits = digitCounts.reduce((a, b) => a + b, 0);
-    const digitPercentages = digitCounts.map(count => (count / totalDigits) * 100);
-
     const oddDigitWithHighestPercentage = Math.max(...oddDigits.map(d => digitPercentages[d])) === Math.max(...digitPercentages);
     const twoOddDigitsAbove11 = oddDigits.filter(d => digitPercentages[d] > 11).length >= 2;
-    
     const last20patterns = digits.slice(0, 20);
     const oddDominatingLast20 = last20patterns.filter(d => d % 2 !== 0).length > last20patterns.filter(d => d % 2 === 0).length;
 
-    // Entry point rule
+    // Entry point rule: Wait for 3+ 'E', then enter on first 'O'
     const last4ticks = digits.slice(0, 4);
     const isEntryPointTriggered = 
         last4ticks[0] % 2 !== 0 && // current is ODD

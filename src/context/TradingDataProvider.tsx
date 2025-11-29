@@ -19,7 +19,7 @@ interface TradingDataContextType {
   balance: number;
   currency: string;
   activeContracts: OpenContract[];
-  buyContract: (contractType: 'DIGITMATCH' | 'DIGITDIFF', stake: number) => void;
+  buyContract: (contractType: 'DIGITEVEN' | 'DIGITODD') => void;
   lastTradeResult: { status: 'won' | 'lost', profit: number } | null;
 }
 
@@ -115,38 +115,30 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   }, [subscribe, sendMessage, selectedAccount, activeContracts, symbol]);
 
   useEffect(() => {
-    if (ticks.length > 0) {
-      const newAnalysis = analyzeDigits(ticks, strategy);
-      setAnalysis(newAnalysis);
-    }
+    const newAnalysis = analyzeDigits(ticks, strategy);
+    setAnalysis(newAnalysis);
   }, [ticks, strategy]);
   
-  const buyContract = useCallback((contractType: 'DIGITMATCH' | 'DIGITDIFF', stake: number) => {
+  const buyContract = useCallback((contractType: 'DIGITEVEN' | 'DIGITODD') => {
         if (!isLoggedIn) {
-            // Or trigger login flow
             alert("Please log in to trade.");
             return;
         }
-        const lastDigit = analysis.lastDigit;
-        if (lastDigit === null) return;
-        
-        // Correct contract types for Even/Odd are DIGITODD and DIGITEVEN
-        const tradeType = contractType === 'DIGITMATCH' ? 'DIGITEVEN' : 'DIGITODD';
-
+        const stake = 1; // Simplified stake
         sendMessage({
             buy: "1",
             price: stake,
             parameters: {
                 amount: stake,
                 basis: 'stake',
-                contract_type: tradeType,
+                contract_type: contractType,
                 currency: currency,
                 duration: 1,
                 duration_unit: 't',
                 symbol: symbol,
             }
         });
-  }, [sendMessage, currency, symbol, analysis.lastDigit, isLoggedIn]);
+  }, [sendMessage, currency, symbol, isLoggedIn]);
 
 
   const value = {

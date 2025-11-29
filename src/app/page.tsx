@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { AlertTriangle, FileText } from "lucide-react";
 import { useTradingData } from "@/context/TradingDataProvider";
 import { StrategyTwoExplanation } from "@/components/dashboard/StrategyTwoExplanation";
+import { StrategyOneExplanation } from "@/components/dashboard/StrategyOneExplanation";
 
 export default function DashboardPage() {
   const { strategy } = useTradingData();
@@ -28,6 +29,9 @@ export default function DashboardPage() {
         
         {strategy === 'strategy1' ? (
           <>
+            <div className="lg:col-span-3">
+                <StrategyOneExplanation />
+            </div>
             <div className="lg:col-span-2 flex flex-col gap-6">
               <AnalysisGrid />
             </div>
