@@ -74,7 +74,7 @@ export function AiSuggestionCard() {
           <Zap className="text-primary" />
           <span>AI Trade Signal</span>
         </CardTitle>
-        <CardDescription>Powered by Google AI</CardDescription>
+        <CardDescription>Powered by Shakes FX</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
         {isLoading ? (
