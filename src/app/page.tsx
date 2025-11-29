@@ -1,9 +1,11 @@
+
 "use client";
 
 import { AnalysisGrid } from "@/components/dashboard/AnalysisGrid";
 import { ControlPanel } from "@/components/dashboard/ControlPanel";
 import { TradeLog } from "@/components/dashboard/TradeLog";
 import { AiSuggestionCard } from "@/components/dashboard/AiSuggestionCard";
+import { Disclaimer } from "@/components/dashboard/Disclaimer";
 
 export default function DashboardPage() {
   return (
@@ -16,6 +18,9 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6">
           <AiSuggestionCard />
           <TradeLog />
+        </div>
+        <div className="lg:col-span-3">
+          <Disclaimer />
         </div>
       </div>
     </div>
