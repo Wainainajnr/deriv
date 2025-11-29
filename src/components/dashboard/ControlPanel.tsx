@@ -34,6 +34,24 @@ export function ControlPanel() {
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-2">
+          <Label>Strategy</Label>
+          <RadioGroup 
+            defaultValue="strategy1" 
+            className="flex items-center pt-2 space-x-4" 
+            value={strategy}
+            onValueChange={(value) => setStrategy(value as Strategy)}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="strategy1" id="s1" />
+              <Label htmlFor="s1">Strategy 1</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="strategy2" id="s2" />
+              <Label htmlFor="s2">Strategy 2</Label>
+            </div>
+          </RadioGroup>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="symbol-select">Market</Label>
           <Select value={symbol} onValueChange={setSymbol}>
             <SelectTrigger id="symbol-select" className="w-full">
@@ -58,24 +76,6 @@ export function ControlPanel() {
             min="0.35"
             step="0.01"
           />
-        </div>
-        <div className="space-y-2">
-          <Label>Strategy</Label>
-          <RadioGroup 
-            defaultValue="strategy1" 
-            className="flex items-center pt-2 space-x-4" 
-            value={strategy}
-            onValueChange={(value) => setStrategy(value as Strategy)}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="strategy1" id="s1" />
-              <Label htmlFor="s1">Strategy 1</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="strategy2" id="s2" />
-              <Label htmlFor="s2">Strategy 2</Label>
-            </div>
-          </RadioGroup>
         </div>
       </CardContent>
     </Card>

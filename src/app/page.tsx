@@ -28,23 +28,22 @@ export default function DashboardPage() {
         </div>
         
         {strategy === 'strategy1' ? (
-          <>
-            <div className="lg:col-span-3">
-                <StrategyOneExplanation />
-            </div>
-            <div className="lg:col-span-2 flex flex-col gap-6">
-              <AnalysisGrid />
-            </div>
-            <div className="flex flex-col gap-6">
-              <AiSuggestionCard />
-              <TradeLog />
-            </div>
-          </>
+          <div className="lg:col-span-3">
+              <StrategyOneExplanation />
+          </div>
         ) : (
             <div className="lg:col-span-3">
                 <StrategyTwoExplanation />
             </div>
         )}
+        
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <AnalysisGrid />
+        </div>
+        <div className="flex flex-col gap-6">
+          <AiSuggestionCard />
+          <TradeLog />
+        </div>
         
         <div className="lg:col-span-3">
           <Card className="glass-card">
