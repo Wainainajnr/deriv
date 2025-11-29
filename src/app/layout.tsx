@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/AuthProvider';
 import { TradingDataProvider } from '@/context/TradingDataProvider';
 import ClientOnly from '@/components/shared/ClientOnly';
+import { Header } from '@/components/shared/Header';
 
 export const metadata: Metadata = {
   title: 'DerivEdge',
@@ -29,7 +30,10 @@ export default function RootLayout({
         <AuthProvider>
           <ClientOnly>
             <TradingDataProvider>
-              {children}
+              <div className="flex min-h-screen w-full flex-col">
+                <Header />
+                <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+              </div>
             </TradingDataProvider>
           </ClientOnly>
         </AuthProvider>
