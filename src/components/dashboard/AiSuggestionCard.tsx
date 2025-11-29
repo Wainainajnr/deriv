@@ -162,15 +162,18 @@ export function AiSuggestionCard() {
       </CardHeader>
       <CardContent>
         {renderContent()}
-        {isTradeSignalActive && (
-             <Button 
-                onClick={handleTrade}
-                className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold animate-pulse"
-                size="lg"
-            >
-                Execute Trade
-            </Button>
-        )}
+        <Button 
+            onClick={handleTrade}
+            disabled={!isTradeSignalActive}
+            className={`w-full mt-4 font-bold transition-all ${
+                isTradeSignalActive 
+                    ? 'bg-green-600 hover:bg-green-700 text-white animate-pulse' 
+                    : 'bg-gray-500/20 text-muted-foreground'
+            }`}
+            size="lg"
+        >
+            Execute Trade
+        </Button>
       </CardContent>
     </Card>
   );
