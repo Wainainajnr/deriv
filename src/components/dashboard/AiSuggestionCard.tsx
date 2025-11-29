@@ -72,7 +72,7 @@ export function AiSuggestionCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Zap className="text-primary" />
-          <span>AI Trade Signal</span>
+          <span>Trade Signal</span>
         </CardTitle>
         <CardDescription>Powered by Shakes FX</CardDescription>
       </CardHeader>
