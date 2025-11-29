@@ -9,7 +9,7 @@ import { Loader2, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function AiSuggestionCard() {
-  const { analysis, buyContract, strategy, isLoggedIn } = useTradingData();
+  const { analysis, buyContract, strategy, isLoggedIn, stake } = useTradingData();
   const [suggestion, setSuggestion] = useState<AutomatedTradeSuggestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -55,8 +55,14 @@ export function AiSuggestionCard() {
         return;
     }
 
-    // This is a simplified logic. A real app should get stake from an input.
-    const stake = 1; 
+    if (parseFloat(stake) < 0.35) {
+        toast({
+            variant: "destructive",
+            title: "Invalid Stake",
+            description: "Minimum stake amount is 0.35.",
+        });
+        return;
+    }
     
     let tradeType: 'ENTER EVEN NOW' | 'ENTER ODD NOW' | 'NO ENTRY' = 'NO ENTRY';
 
@@ -67,9 +73,9 @@ export function AiSuggestionCard() {
     }
 
     if (tradeType === 'ENTER EVEN NOW') {
-      buyContract('DIGITEVEN'); 
+      buyContract('DIGITEVEN', parseFloat(stake)); 
     } else if (tradeType === 'ENTER ODD NOW') {
-      buyContract('DIGITODD');
+      buyContract('DIGITODD', parseFloat(stake));
     }
   }
 

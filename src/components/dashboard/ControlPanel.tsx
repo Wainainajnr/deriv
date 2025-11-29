@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -27,8 +27,7 @@ const allVolatilityIndices = [
 const strategy2Indices = ["R_10", "R_25", "R_50"];
 
 export function ControlPanel() {
-  const { symbol, setSymbol, strategy, setStrategy } = useTradingData();
-  const [stake, setStake] = useState("1"); // Local state for input
+  const { symbol, setSymbol, strategy, setStrategy, stake, setStake } = useTradingData();
 
   const availableIndices = strategy === 'strategy2'
     ? allVolatilityIndices.filter(index => strategy2Indices.includes(index.value))

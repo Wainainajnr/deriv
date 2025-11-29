@@ -14,12 +14,14 @@ interface TradingDataContextType {
   setSymbol: (symbol: string) => void;
   strategy: Strategy;
   setStrategy: (strategy: Strategy) => void;
+  stake: string;
+  setStake: (stake: string) => void;
   ticks: TickResponse['tick'][];
   analysis: DigitAnalysis;
   balance: number;
   currency: string;
   activeContracts: OpenContract[];
-  buyContract: (contractType: 'DIGITEVEN' | 'DIGITODD') => void;
+  buyContract: (contractType: 'DIGITEVEN' | 'DIGITODD', stake: number) => void;
   lastTradeResult: { status: 'won' | 'lost', profit: number } | null;
 }
 
@@ -30,6 +32,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   const { selectedAccount, token, isLoggedIn } = useAuth();
   const [symbol, setSymbolState] = useState('R_100');
   const [strategy, setStrategy] = useState<Strategy>('strategy1');
+  const [stake, setStake] = useState('1');
   const [ticks, setTicks] = useState<TickResponse['tick'][]>([]);
   const [analysis, setAnalysis] = useState<DigitAnalysis>({
     lastDigit: null,
@@ -119,12 +122,11 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     setAnalysis(newAnalysis);
   }, [ticks, strategy]);
   
-  const buyContract = useCallback((contractType: 'DIGITEVEN' | 'DIGITODD') => {
+  const buyContract = useCallback((contractType: 'DIGITEVEN' | 'DIGITODD', stake: number) => {
         if (!isLoggedIn) {
             alert("Please log in to trade.");
             return;
         }
-        const stake = 1; // Simplified stake
         sendMessage({
             buy: "1",
             price: stake,
@@ -147,6 +149,8 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     setSymbol,
     strategy,
     setStrategy,
+    stake,
+    setStake,
     ticks,
     analysis,
     balance,

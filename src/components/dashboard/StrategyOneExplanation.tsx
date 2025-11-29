@@ -68,7 +68,7 @@ export function StrategyOneExplanation() {
                 </ConditionPill>
             </CardContent>
         </Card>
-        <Card className={`glass-card border-2 ${allConditionsMet ? 'border-primary' : 'border-card'}`}>
+        <Card className={`glass-card border-2 ${analysis.entryCondition === 'ENTER EVEN NOW' ? 'border-primary' : 'border-card'}`}>
             <CardHeader>
                  <CardTitle className="flex items-center gap-2"><Target className="text-primary"/> Entry Point Rule</CardTitle>
             </CardHeader>
