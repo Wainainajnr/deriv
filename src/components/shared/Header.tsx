@@ -1,0 +1,77 @@
+"use client";
+
+import { useAuth } from "@/context/AuthProvider";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, LogOut, CircleUserRound } from "lucide-react";
+import { useTradingData } from "@/context/TradingDataProvider";
+import { Logo } from "../icons/Logo";
+import Image from "next/image";
+
+export function Header() {
+  const { accounts, selectedAccount, logout, selectAccount } = useAuth();
+  const { balance, currency } = useTradingData();
+
+  return (
+    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-xl md:px-6">
+      <Logo />
+      <div className="ml-auto flex items-center gap-4">
+        {selectedAccount && (
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <div className="flex flex-col items-end">
+              <span className="font-bold text-lg text-primary">
+                {new Intl.NumberFormat(undefined, {
+                  style: "currency",
+                  currency: currency,
+                }).format(balance)}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {selectedAccount.loginid}
+              </span>
+            </div>
+          </div>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2">
+              <CircleUserRound className="h-5 w-5" />
+              <span className="hidden md:inline">
+                {selectedAccount?.loginid}
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel>My Accounts</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {accounts.map((acc) => (
+              <DropdownMenuItem
+                key={acc.loginid}
+                onClick={() => selectAccount(acc.loginid)}
+                className={`flex justify-between ${selectedAccount?.loginid === acc.loginid ? 'bg-accent' : ''}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Image src={`https://app.deriv.com/public/images/trading-app-icons/${acc.is_virtual ? 'demo' : 'real'}.svg`} width={16} height={16} alt={acc.account_category} />
+                  <span>{acc.loginid}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">{acc.currency}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout} className="text-red-500 focus:text-red-400 focus:bg-red-500/10">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Logout</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  );
+}

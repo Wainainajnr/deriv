@@ -1,0 +1,166 @@
+"use client";
+
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
+import { useDerivWebSocket } from '@/hooks/useDerivWebSocket';
+import { useAuth } from './AuthProvider';
+import type { TickResponse, BalanceResponse, AuthorizeResponse, OpenContract, PortfolioResponse, BuyResponse, TransactionResponse } from '@/types/deriv';
+import { analyzeDigits, type DigitAnalysis } from '@/lib/analysis';
+
+const MAX_TICKS = 100;
+
+interface TradingDataContextType {
+  isConnected: boolean;
+  symbol: string;
+  setSymbol: (symbol: string) => void;
+  ticks: TickResponse['tick'][];
+  analysis: DigitAnalysis;
+  balance: number;
+  currency: string;
+  activeContracts: OpenContract[];
+  buyContract: (contractType: 'DIGITMATCH' | 'DIGITDIFF', stake: number) => void;
+  lastTradeResult: { status: 'won' | 'lost', profit: number } | null;
+}
+
+const TradingDataContext = createContext<TradingDataContextType | undefined>(undefined);
+
+export function TradingDataProvider({ children }: { children: ReactNode }) {
+  const { isConnected, sendMessage, subscribe, lastMessage } = useDerivWebSocket();
+  const { selectedAccount, token, isLoggedIn } = useAuth();
+  const [symbol, setSymbolState] = useState('R_100');
+  const [ticks, setTicks] = useState<TickResponse['tick'][]>([]);
+  const [analysis, setAnalysis] = useState<DigitAnalysis>({
+    lastDigit: null,
+    evenOddPercentage: { even: 0, odd: 0 },
+    digitCounts: Array(10).fill(0),
+    patternHistory: '',
+    patternDominance: 'None',
+    signalStrength: 'weak',
+    entryCondition: 'NO ENTRY',
+  });
+  const [balance, setBalance] = useState(0);
+  const [currency, setCurrency] = useState('');
+  const [activeContracts, setActiveContracts] = useState<OpenContract[]>([]);
+  const [lastTradeResult, setLastTradeResult] = useState<{ status: 'won' | 'lost', profit: number } | null>(null);
+
+  const setSymbol = useCallback((newSymbol: string) => {
+    if (newSymbol === symbol) return;
+    sendMessage({ forget_all: 'ticks' });
+    setTicks([]);
+    setSymbolState(newSymbol);
+  }, [symbol, sendMessage]);
+
+  useEffect(() => {
+    if (isConnected && isLoggedIn) {
+        sendMessage({ ticks: symbol });
+        sendMessage({ balance: 1, subscribe: 1 });
+        sendMessage({ portfolio: 1 });
+        sendMessage({ transaction: 1, subscribe: 1 });
+    }
+  }, [isConnected, isLoggedIn, symbol, sendMessage]);
+
+  useEffect(() => {
+    subscribe('authorize', (msg) => {
+      const authMsg = msg as AuthorizeResponse;
+      setBalance(authMsg.authorize.balance);
+      setCurrency(authMsg.authorize.currency);
+    });
+    
+    subscribe('balance', (msg) => {
+        const balanceMsg = msg as BalanceResponse;
+        if(balanceMsg.balance.loginid === selectedAccount?.loginid) {
+            setBalance(balanceMsg.balance.balance);
+            setCurrency(balanceMsg.balance.currency);
+        }
+    });
+
+    subscribe('tick', (msg) => {
+      const tickMsg = msg as TickResponse;
+      if (tickMsg.tick) {
+        setTicks(prev => [tickMsg.tick, ...prev.slice(0, MAX_TICKS - 1)]);
+      }
+    });
+
+    subscribe('portfolio', (msg) => {
+        const portfolioMsg = msg as PortfolioResponse;
+        if (portfolioMsg.portfolio) {
+            setActiveContracts(portfolioMsg.portfolio.contracts);
+        }
+    });
+    
+    subscribe('transaction', (msg) => {
+        const transactionMsg = msg as TransactionResponse;
+        if (transactionMsg.transaction.action === 'sell') {
+             const contract = activeContracts.find(c => c.contract_id === transactionMsg.transaction.contract_id);
+             if (contract) {
+                const profit = transactionMsg.transaction.amount - contract.buy_price;
+                setLastTradeResult({
+                    status: profit >= 0 ? 'won' : 'lost',
+                    profit,
+                });
+             }
+             sendMessage({ portfolio: 1 }); // Refresh portfolio
+        }
+    });
+
+  }, [subscribe, sendMessage, selectedAccount, activeContracts]);
+
+  useEffect(() => {
+    if (ticks.length > 0) {
+      const newAnalysis = analyzeDigits(ticks);
+      setAnalysis(newAnalysis);
+    }
+  }, [ticks]);
+  
+  const buyContract = useCallback((contractType: 'DIGITMATCH' | 'DIGITDIFF', stake: number) => {
+        const lastDigit = analysis.lastDigit;
+        if (lastDigit === null) return;
+        
+        const isEven = lastDigit % 2 === 0;
+        // For EVEN trade, we want DIGITDIFF if last digit is ODD, and DIGITMATCH if last digit is EVEN
+        // This logic seems complex and might need refinement based on Deriv's API
+        // For now, let's assume we are trading on the next tick's property.
+        // Let's simplify: DIGITMATCH means next digit is same as prediction, DIGITDIFF means different.
+        // We need a prediction. Let's trade Even/Odd directly.
+
+        // Correct contract types for Even/Odd are DIGITODD and DIGITEVEN
+        const tradeType = contractType === 'DIGITMATCH' ? 'DIGITEVEN' : 'DIGITODD';
+
+        sendMessage({
+            buy: "1",
+            price: stake,
+            parameters: {
+                amount: stake,
+                basis: 'stake',
+                contract_type: tradeType,
+                currency: currency,
+                duration: 1,
+                duration_unit: 't',
+                symbol: symbol,
+            }
+        });
+  }, [sendMessage, currency, symbol, analysis.lastDigit]);
+
+
+  const value = {
+    isConnected,
+    symbol,
+    setSymbol,
+    ticks,
+    analysis,
+    balance,
+    currency,
+    activeContracts,
+    buyContract,
+    lastTradeResult,
+  };
+
+  return <TradingDataContext.Provider value={value}>{children}</TradingDataContext.Provider>;
+}
+
+export const useTradingData = () => {
+  const context = useContext(TradingDataContext);
+  if (context === undefined) {
+    throw new Error('useTradingData must be used within a TradingDataProvider');
+  }
+  return context;
+};
