@@ -6,6 +6,7 @@ import { ControlPanel } from "@/components/dashboard/ControlPanel";
 import { TradeLog } from "@/components/dashboard/TradeLog";
 import { AiSuggestionCard } from "@/components/dashboard/AiSuggestionCard";
 import { Disclaimer } from "@/components/dashboard/Disclaimer";
+import { TermsAndConditions } from "@/components/dashboard/TermsAndConditions";
 
 export default function DashboardPage() {
   return (
@@ -21,6 +22,7 @@ export default function DashboardPage() {
         </div>
         <div className="lg:col-span-3">
           <Disclaimer />
+          <TermsAndConditions />
         </div>
       </div>
     </div>
