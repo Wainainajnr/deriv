@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -15,13 +16,15 @@ export function StrategyTwoExplanation() {
 
   // Condition checks based on current analysis state
   const condition1 = analysis.evenOddPercentage.odd >= 70;
-  const last20patterns = analysis.patternHistory.split(' ').slice(0, 20);
-  const condition2 = last20patterns.filter(p => p === 'O').length > last20patterns.filter(p => p === 'E').length;
-  const oddDigitWithHighestPercentage = Math.max(...oddDigits.map(d => digitPercentages[d])) === Math.max(...digitPercentages);
-  const condition3 = oddDigitWithHighestPercentage;
-  const condition4 = oddDigits.filter(d => digitPercentages[d] > 11).length >= 2;
+  const last20patternsArr = analysis.patternHistory.split(' ').slice(0, 20);
+  const condition2 = last20patternsArr.filter(p => p === 'O').length > last20patternsArr.filter(p => p === 'E').length;
 
-  const allConditionsMet = condition1 && condition2 && condition3 && condition4;
+  const oddDigitPercentages = oddDigits.map(d => digitPercentages[d]);
+  const maxOddPercentage = Math.max(...oddDigitPercentages);
+  const maxOverallPercentage = Math.max(...digitPercentages);
+  const condition3 = maxOddPercentage === maxOverallPercentage && maxOddPercentage > 0;
+  
+  const condition4 = oddDigits.filter(d => digitPercentages[d] > 11).length >= 2;
 
   const ConditionPill = ({ passed, children }: { passed: boolean; children: React.ReactNode }) => (
     <div className={`flex items-center gap-2 p-2 rounded-md text-sm ${passed ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
@@ -55,7 +58,7 @@ export function StrategyTwoExplanation() {
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="glass-card">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><BarChart2 className="text-primary"/> Strategy Conditions</CardTitle>
+                <CardTitle className="flex items-center gap-2"><BarChart2 className="text-accent"/> Strategy Conditions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
                 <ConditionPill passed={condition1}>
@@ -72,9 +75,9 @@ export function StrategyTwoExplanation() {
                 </ConditionPill>
             </CardContent>
         </Card>
-        <Card className={`glass-card border-2 ${analysis.entryCondition === 'ENTER ODD NOW' ? 'border-primary' : 'border-card'}`}>
+        <Card className={`glass-card border-2 ${analysis.entryCondition === 'ENTER ODD NOW' ? 'border-accent' : 'border-card'}`}>
             <CardHeader>
-                 <CardTitle className="flex items-center gap-2"><Target className="text-primary"/> Entry Point Rule</CardTitle>
+                 <CardTitle className="flex items-center gap-2"><Target className="text-accent"/> Entry Point Rule</CardTitle>
             </CardHeader>
              <CardContent className="space-y-4">
                 <p className="text-muted-foreground">When all strategy conditions are met, the entry signal appears.</p>
@@ -82,7 +85,7 @@ export function StrategyTwoExplanation() {
                     Wait for: <span className="text-primary">E</span> <span className="text-primary">E</span> <span className="text-primary">E</span> ... then ENTER after first <span className="text-accent">O</span>
                 </div>
                  {analysis.entryCondition === 'ENTER ODD NOW' && (
-                    <div className="p-4 bg-primary/20 text-primary rounded-md text-center font-bold text-xl animate-pulse">
+                    <div className="p-4 bg-accent/20 text-accent rounded-md text-center font-bold text-xl animate-pulse">
                         ENTRY SIGNAL: ENTER ODD NOW
                     </div>
                 )}

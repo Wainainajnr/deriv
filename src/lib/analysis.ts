@@ -70,7 +70,11 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
   if (strategy === 'strategy1') {
     // ✅ EVEN STRATEGY (Strategy 1)
     const evenDigits = [0, 2, 4, 6, 8];
-    const evenDigitWithHighestPercentage = Math.max(...evenDigits.map(d => digitPercentages[d])) === Math.max(...digitPercentages);
+    const evenDigitPercentages = evenDigits.map(d => digitPercentages[d]);
+    const maxEvenPercentage = Math.max(...evenDigitPercentages);
+    const maxOverallPercentage = Math.max(...digitPercentages);
+    const evenDigitWithHighestPercentage = maxEvenPercentage === maxOverallPercentage && maxEvenPercentage > 0;
+    
     const twoEvenDigitsAbove11 = evenDigits.filter(d => digitPercentages[d] > 11).length >= 2;
     const last20patterns = digits.slice(0, 20);
     const evenDominatingLast20 = last20patterns.filter(d => d % 2 === 0).length > last20patterns.filter(d => d % 2 !== 0).length;
@@ -100,7 +104,11 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
   } else if (strategy === 'strategy2') {
     // ✅ ODD STRATEGY (Strategy 2)
     const oddDigits = [1, 3, 5, 7, 9];
-    const oddDigitWithHighestPercentage = Math.max(...oddDigits.map(d => digitPercentages[d])) === Math.max(...digitPercentages);
+    const oddDigitPercentages = oddDigits.map(d => digitPercentages[d]);
+    const maxOddPercentage = Math.max(...oddDigitPercentages);
+    const maxOverallPercentage = Math.max(...digitPercentages);
+    const oddDigitWithHighestPercentage = maxOddPercentage === maxOverallPercentage && maxOddPercentage > 0;
+
     const twoOddDigitsAbove11 = oddDigits.filter(d => digitPercentages[d] > 11).length >= 2;
     const last20patterns = digits.slice(0, 20);
     const oddDominatingLast20 = last20patterns.filter(d => d % 2 !== 0).length > last20patterns.filter(d => d % 2 === 0).length;

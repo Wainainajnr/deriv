@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,16 +14,18 @@ export function StrategyOneExplanation() {
   const digitPercentages = digitCounts.map(count => totalDigits > 0 ? (count / totalDigits) * 100 : 0);
   const evenDigits = [0, 2, 4, 6, 8];
 
-  const last20patterns = analysis.patternHistory.split(' ').slice(0, 20);
+  const last20patternsArr = analysis.patternHistory.split(' ').slice(0, 20);
 
   // Condition checks based on current analysis state
   const condition1 = analysis.evenOddPercentage.even >= 55;
-  const condition2 = last20patterns.filter(p => p === 'E').length > last20patterns.filter(p => p === 'O').length;
-  const evenDigitWithHighestPercentage = Math.max(...evenDigits.map(d => digitPercentages[d])) === Math.max(...digitPercentages);
-  const condition3 = evenDigitWithHighestPercentage;
-  const condition4 = evenDigits.filter(d => digitPercentages[d] > 11).length >= 2;
+  const condition2 = last20patternsArr.filter(p => p === 'E').length > last20patternsArr.filter(p => p === 'O').length;
+  
+  const evenDigitPercentages = evenDigits.map(d => digitPercentages[d]);
+  const maxEvenPercentage = Math.max(...evenDigitPercentages);
+  const maxOverallPercentage = Math.max(...digitPercentages);
+  const condition3 = maxEvenPercentage === maxOverallPercentage && maxEvenPercentage > 0;
 
-  const allConditionsMet = condition1 && condition2 && condition3 && condition4;
+  const condition4 = evenDigits.filter(d => digitPercentages[d] > 11).length >= 2;
 
   const ConditionPill = ({ passed, children }: { passed: boolean; children: React.ReactNode }) => (
     <div className={`flex items-center gap-2 p-2 rounded-md text-sm ${passed ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
