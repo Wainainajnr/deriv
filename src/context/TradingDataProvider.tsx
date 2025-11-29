@@ -49,14 +49,21 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     setSymbolState(newSymbol);
   }, [symbol, sendMessage]);
 
+  // Subscribe to public ticks data as soon as connected
+  useEffect(() => {
+    if (isConnected) {
+        sendMessage({ ticks: symbol });
+    }
+  }, [isConnected, symbol, sendMessage]);
+
+  // Subscribe to private, authenticated data only when logged in
   useEffect(() => {
     if (isConnected && isLoggedIn) {
-        sendMessage({ ticks: symbol });
         sendMessage({ balance: 1, subscribe: 1 });
         sendMessage({ portfolio: 1 });
         sendMessage({ transaction: 1, subscribe: 1 });
     }
-  }, [isConnected, isLoggedIn, symbol, sendMessage]);
+  }, [isConnected, isLoggedIn, sendMessage]);
 
   useEffect(() => {
     subscribe('authorize', (msg) => {
@@ -67,7 +74,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     
     subscribe('balance', (msg) => {
         const balanceMsg = msg as BalanceResponse;
-        if(balanceMsg.balance.loginid === selectedAccount?.loginid) {
+        if (balanceMsg.balance.loginid === selectedAccount?.loginid) {
             setBalance(balanceMsg.balance.balance);
             setCurrency(balanceMsg.balance.currency);
         }
@@ -75,7 +82,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
 
     subscribe('tick', (msg) => {
       const tickMsg = msg as TickResponse;
-      if (tickMsg.tick) {
+      if (tickMsg.tick && tickMsg.tick.symbol === symbol) {
         setTicks(prev => [tickMsg.tick, ...prev.slice(0, MAX_TICKS - 1)]);
       }
     });
@@ -102,7 +109,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
         }
     });
 
-  }, [subscribe, sendMessage, selectedAccount, activeContracts]);
+  }, [subscribe, sendMessage, selectedAccount, activeContracts, symbol]);
 
   useEffect(() => {
     if (ticks.length > 0) {
@@ -112,16 +119,14 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   }, [ticks]);
   
   const buyContract = useCallback((contractType: 'DIGITMATCH' | 'DIGITDIFF', stake: number) => {
+        if (!isLoggedIn) {
+            // Or trigger login flow
+            alert("Please log in to trade.");
+            return;
+        }
         const lastDigit = analysis.lastDigit;
         if (lastDigit === null) return;
         
-        const isEven = lastDigit % 2 === 0;
-        // For EVEN trade, we want DIGITDIFF if last digit is ODD, and DIGITMATCH if last digit is EVEN
-        // This logic seems complex and might need refinement based on Deriv's API
-        // For now, let's assume we are trading on the next tick's property.
-        // Let's simplify: DIGITMATCH means next digit is same as prediction, DIGITDIFF means different.
-        // We need a prediction. Let's trade Even/Odd directly.
-
         // Correct contract types for Even/Odd are DIGITODD and DIGITEVEN
         const tradeType = contractType === 'DIGITMATCH' ? 'DIGITEVEN' : 'DIGITODD';
 
@@ -138,7 +143,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
                 symbol: symbol,
             }
         });
-  }, [sendMessage, currency, symbol, analysis.lastDigit]);
+  }, [sendMessage, currency, symbol, analysis.lastDigit, isLoggedIn]);
 
 
   const value = {

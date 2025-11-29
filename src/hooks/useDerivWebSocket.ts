@@ -16,7 +16,7 @@ export const useDerivWebSocket = () => {
     const messageCallbacks = useRef<Map<string, (msg: DerivMessage) => void>>(new Map());
 
     const connect = useCallback(() => {
-        if (!isLoggedIn || (ws.current && ws.current.readyState === WebSocket.OPEN)) {
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             return;
         }
 
@@ -25,7 +25,8 @@ export const useDerivWebSocket = () => {
         ws.current.onopen = () => {
             console.log("WebSocket connected");
             setIsConnected(true);
-            if (token) {
+            // Authorize if logged in
+            if (token && isLoggedIn) {
                 ws.current?.send(JSON.stringify({ authorize: token }));
             }
         };
@@ -53,21 +54,19 @@ export const useDerivWebSocket = () => {
         ws.current.onclose = () => {
             console.log("WebSocket disconnected");
             setIsConnected(false);
-            // Optional: implement auto-reconnect logic
+            // Auto-reconnect logic
             setTimeout(() => {
-                if (isLoggedIn) {
-                    console.log("Reconnecting WebSocket...");
-                    connect();
-                }
+                console.log("Reconnecting WebSocket...");
+                connect();
             }, 5000);
         };
 
-        ws.current.onerror = (error) => {
-            console.error("WebSocket error:", error);
+        ws.current.onerror = (event) => {
+            console.error("WebSocket error:", event);
             toast({
                 variant: 'destructive',
                 title: 'Connection Error',
-                description: 'Unable to connect to Deriv services. Please check your internet connection and try again.'
+                description: 'Unable to connect to Deriv services. Retrying...'
             });
             ws.current?.close();
         };
@@ -75,9 +74,7 @@ export const useDerivWebSocket = () => {
     }, [token, toast, isLoggedIn]);
 
     useEffect(() => {
-        if(isLoggedIn) {
-            connect();
-        }
+        connect();
         
         const interval = setInterval(() => {
             if (ws.current?.readyState === WebSocket.OPEN) {
@@ -91,14 +88,15 @@ export const useDerivWebSocket = () => {
                 ws.current?.close();
             }
         };
-    }, [connect, isLoggedIn]);
+    }, [connect]);
 
 
     const sendMessage = useCallback((message: object) => {
         if (ws.current?.readyState === WebSocket.OPEN) {
             ws.current.send(JSON.stringify(message));
         } else {
-            console.error("WebSocket is not connected.");
+            console.log("WebSocket is not connected. Message will be sent upon reconnection.");
+            // You could queue the message here to be sent on 'open' event
         }
     }, []);
 
