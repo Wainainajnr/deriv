@@ -94,7 +94,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (isSimulationMode) {
-      subscribe('tick', (msg) => {
+      const handleTick = (msg: any) => {
         const tickMsg = msg as TickResponse;
         if (tickMsg.tick && tickMsg.tick.symbol === symbol) {
           const newTick = tickMsg.tick;
@@ -103,7 +103,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
           // Settle simulated contracts
           setSimulatedContracts(prevContracts => {
             const stillOpen: SimulatedContract[] = [];
-            let balanceChange = 0;
+            let totalPayout = 0;
 
             prevContracts.forEach(contract => {
               if (newTick.epoch > contract.entry_tick_time) {
@@ -112,16 +112,18 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
                                 (contract.contract_type === 'DIGITODD' && exitDigit % 2 !== 0);
 
                 const profit = isWin ? contract.payout - contract.buy_price : -contract.buy_price;
-                balanceChange += isWin ? contract.payout : 0;
+                if(isWin) {
+                    totalPayout += contract.payout;
+                }
                 setLastTradeResult({ status: isWin ? 'won' : 'lost', profit });
               } else {
                 stillOpen.push(contract);
               }
             });
 
-            if (balanceChange > 0) {
+            if (totalPayout > 0) {
               setBalance(prev => {
-                  const newBalance = prev + balanceChange;
+                  const newBalance = prev + totalPayout;
                   localStorage.setItem('deriv_sim_balance', newBalance.toString());
                   return newBalance;
               });
@@ -129,7 +131,8 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
             return stillOpen;
           });
         }
-      });
+      };
+      subscribe('tick', handleTick);
       return; // Don't set up real-money listeners
     }
 
@@ -205,7 +208,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
                 payout: stake * (1 + SIMULATED_PAYOUT_PERCENTAGE),
                 contract_type: contractType,
                 entry_tick_time: currentTick.epoch,
-                shortcode: `SIM_${contractType}_${symbol}_${stake}`,
+                shortcode: `SIM_${contractType}_${symbol}_${stake.toFixed(2)}`,
                 status: 'open',
             };
             setSimulatedContracts(prev => [...prev, newContract]);
@@ -231,7 +234,17 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
       });
   }, [sendMessage, currency, symbol, isLoggedIn, isSimulationMode, balance, ticks, toast]);
 
-  const displayedContracts = isSimulationMode ? simulatedContracts.map(c => ({...c, profit: 0, currency: 'USD'} as OpenContract)) : activeContracts;
+  const displayedContracts = isSimulationMode 
+    ? simulatedContracts.map(c => ({
+        ...c, 
+        profit: 0, // profit is unknown until settled
+        currency: 'USD',
+        is_valid_to_sell: 0,
+        is_settleable: 0,
+        is_expired: 0,
+        longcode: c.shortcode,
+    } as OpenContract)) 
+    : activeContracts;
 
 
   const value = {
@@ -261,3 +274,5 @@ export const useTradingData = () => {
   }
   return context;
 };
+
+    
