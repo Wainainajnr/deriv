@@ -1,4 +1,3 @@
-
 "use client";
 
 import { AnalysisGrid } from "@/components/dashboard/AnalysisGrid";
@@ -7,6 +6,14 @@ import { TradeLog } from "@/components/dashboard/TradeLog";
 import { AiSuggestionCard } from "@/components/dashboard/AiSuggestionCard";
 import { Disclaimer } from "@/components/dashboard/Disclaimer";
 import { TermsAndConditions } from "@/components/dashboard/TermsAndConditions";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Card } from "@/components/ui/card";
+import { AlertTriangle, FileText } from "lucide-react";
 
 export default function DashboardPage() {
   return (
@@ -21,8 +28,32 @@ export default function DashboardPage() {
           <TradeLog />
         </div>
         <div className="lg:col-span-3">
-          <Disclaimer />
-          <TermsAndConditions />
+          <Card className="glass-card">
+            <Accordion type="multiple" className="w-full">
+              <AccordionItem value="disclaimer" className="border-b-0">
+                <AccordionTrigger className="p-4 hover:no-underline">
+                  <div className="flex items-center gap-4">
+                    <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                    <h4 className="font-bold text-yellow-500">Risk Disclaimer</h4>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <Disclaimer />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="terms" className="border-b-0">
+                <AccordionTrigger className="p-4 hover:no-underline">
+                   <div className="flex items-center gap-4">
+                        <FileText className="h-6 w-6 text-muted-foreground" />
+                        <h4 className="font-bold">Terms and Conditions</h4>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <TermsAndConditions />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </Card>
         </div>
       </div>
     </div>
