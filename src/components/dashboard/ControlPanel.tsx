@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useTradingData } from "@/context/TradingDataProvider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Strategy } from "@/lib/analysis";
 
 const volatilityIndices = [
   { value: "R_10", label: "Volatility 10 Index" },
@@ -22,18 +24,15 @@ const volatilityIndices = [
 ];
 
 export function ControlPanel() {
-  const { symbol, setSymbol } = useTradingData();
+  const { symbol, setSymbol, strategy, setStrategy } = useTradingData();
   const [stake, setStake] = useState("1"); // Local state for input
-
-  // In a real app, this stake would be passed to a buy function in context.
-  // For now, it's a UI element.
 
   return (
     <Card className="glass-card">
       <CardHeader>
         <CardTitle>Trade Settings</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-2">
           <Label htmlFor="symbol-select">Market</Label>
           <Select value={symbol} onValueChange={setSymbol}>
@@ -59,6 +58,24 @@ export function ControlPanel() {
             min="0.35"
             step="0.01"
           />
+        </div>
+        <div className="space-y-2">
+          <Label>Strategy</Label>
+          <RadioGroup 
+            defaultValue="strategy1" 
+            className="flex items-center pt-2 space-x-4" 
+            value={strategy}
+            onValueChange={(value) => setStrategy(value as Strategy)}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="strategy1" id="s1" />
+              <Label htmlFor="s1">Strategy 1</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="strategy2" id="s2" />
+              <Label htmlFor="s2">Strategy 2</Label>
+            </div>
+          </RadioGroup>
         </div>
       </CardContent>
     </Card>

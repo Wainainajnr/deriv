@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode, useCall
 import { useDerivWebSocket } from '@/hooks/useDerivWebSocket';
 import { useAuth } from './AuthProvider';
 import type { TickResponse, BalanceResponse, AuthorizeResponse, OpenContract, PortfolioResponse, BuyResponse, TransactionResponse } from '@/types/deriv';
-import { analyzeDigits, type DigitAnalysis } from '@/lib/analysis';
+import { analyzeDigits, type DigitAnalysis, type Strategy } from '@/lib/analysis';
 
 const MAX_TICKS = 100;
 
@@ -12,6 +12,8 @@ interface TradingDataContextType {
   isConnected: boolean;
   symbol: string;
   setSymbol: (symbol: string) => void;
+  strategy: Strategy;
+  setStrategy: (strategy: Strategy) => void;
   ticks: TickResponse['tick'][];
   analysis: DigitAnalysis;
   balance: number;
@@ -27,6 +29,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   const { isConnected, sendMessage, subscribe, lastMessage } = useDerivWebSocket();
   const { selectedAccount, token, isLoggedIn } = useAuth();
   const [symbol, setSymbolState] = useState('R_100');
+  const [strategy, setStrategy] = useState<Strategy>('strategy1');
   const [ticks, setTicks] = useState<TickResponse['tick'][]>([]);
   const [analysis, setAnalysis] = useState<DigitAnalysis>({
     lastDigit: null,
@@ -113,10 +116,10 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (ticks.length > 0) {
-      const newAnalysis = analyzeDigits(ticks);
+      const newAnalysis = analyzeDigits(ticks, strategy);
       setAnalysis(newAnalysis);
     }
-  }, [ticks]);
+  }, [ticks, strategy]);
   
   const buyContract = useCallback((contractType: 'DIGITMATCH' | 'DIGITDIFF', stake: number) => {
         if (!isLoggedIn) {
@@ -150,6 +153,8 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     isConnected,
     symbol,
     setSymbol,
+    strategy,
+    setStrategy,
     ticks,
     analysis,
     balance,

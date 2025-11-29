@@ -14,19 +14,34 @@ import {
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { AlertTriangle, FileText } from "lucide-react";
+import { useTradingData } from "@/context/TradingDataProvider";
+import { StrategyTwoExplanation } from "@/components/dashboard/StrategyTwoExplanation";
 
 export default function DashboardPage() {
+  const { strategy } = useTradingData();
   return (
     <div className="container mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <ControlPanel />
-          <AnalysisGrid />
+        <div className="lg:col-span-3">
+            <ControlPanel />
         </div>
-        <div className="flex flex-col gap-6">
-          <AiSuggestionCard />
-          <TradeLog />
-        </div>
+        
+        {strategy === 'strategy1' ? (
+          <>
+            <div className="lg:col-span-2 flex flex-col gap-6">
+              <AnalysisGrid />
+            </div>
+            <div className="flex flex-col gap-6">
+              <AiSuggestionCard />
+              <TradeLog />
+            </div>
+          </>
+        ) : (
+            <div className="lg:col-span-3">
+                <StrategyTwoExplanation />
+            </div>
+        )}
+        
         <div className="lg:col-span-3">
           <Card className="glass-card">
             <Accordion type="multiple" className="w-full">
