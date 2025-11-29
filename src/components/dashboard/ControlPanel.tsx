@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,7 +16,7 @@ import { useTradingData } from "@/context/TradingDataProvider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Strategy } from "@/lib/analysis";
 
-const volatilityIndices = [
+const allVolatilityIndices = [
   { value: "R_10", label: "Volatility 10 Index" },
   { value: "R_25", label: "Volatility 25 Index" },
   { value: "R_50", label: "Volatility 50 Index" },
@@ -23,9 +24,24 @@ const volatilityIndices = [
   { value: "R_100", label: "Volatility 100 Index" },
 ];
 
+const strategy2Indices = ["R_10", "R_25", "R_50"];
+
 export function ControlPanel() {
   const { symbol, setSymbol, strategy, setStrategy } = useTradingData();
   const [stake, setStake] = useState("1"); // Local state for input
+
+  const availableIndices = strategy === 'strategy2'
+    ? allVolatilityIndices.filter(index => strategy2Indices.includes(index.value))
+    : allVolatilityIndices;
+
+  useEffect(() => {
+    // If the selected strategy is 2 and the current symbol is not in the allowed list,
+    // switch to the first available symbol for strategy 2.
+    if (strategy === 'strategy2' && !strategy2Indices.includes(symbol)) {
+      setSymbol(strategy2Indices[0]);
+    }
+  }, [strategy, symbol, setSymbol]);
+
 
   return (
     <Card className="glass-card">
@@ -58,7 +74,7 @@ export function ControlPanel() {
               <SelectValue placeholder="Select a symbol" />
             </SelectTrigger>
             <SelectContent>
-              {volatilityIndices.map((index) => (
+              {availableIndices.map((index) => (
                 <SelectItem key={index.value} value={index.value}>
                   {index.label}
                 </SelectItem>
