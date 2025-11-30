@@ -4,7 +4,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/AuthProvider';
 import { TradingDataProvider } from '@/context/TradingDataProvider';
 import ClientOnly from '@/components/shared/ClientOnly';
-import { Header } from '@/components/shared/Header';
 
 export const metadata: Metadata = {
   title: 'DerivEdge',
