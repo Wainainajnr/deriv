@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from "react";
@@ -20,17 +21,22 @@ export default function CallbackPage() {
       const accountListStr = params.get("loginid_list");
       const state = params.get("state");
 
+      // 1. Retrieve the saved state from localStorage.
       const savedState = localStorage.getItem(OAUTH_STATE_KEY);
+      
+      // 2. Immediately remove the state from storage to prevent reuse.
+      localStorage.removeItem(OAUTH_STATE_KEY);
 
-      if (state !== savedState) {
+      // 3. Verify that the received state matches the saved state.
+      if (!state || state !== savedState) {
           console.error("OAuth state mismatch. Possible CSRF attack.");
+          // Redirect to login with a specific error message.
           router.replace("/login?error=state_mismatch");
           return;
       }
-      localStorage.removeItem(OAUTH_STATE_KEY);
-
 
       if (token && accountListStr) {
+        // The rest of the logic remains the same.
         const accounts: DerivAccount[] = accountListStr.split('+').map(accStr => {
             const [loginid, isVirtual, currency, accountType] = accStr.split(':');
             return {

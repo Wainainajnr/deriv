@@ -24,7 +24,6 @@ interface AuthContextType {
   setTokenAndAccounts: (token: string, accounts: DerivAccount[]) => void;
   isSimulationMode: boolean;
   toggleSimulationMode: (isSim: boolean) => void;
-  loginAndDisableSim: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,12 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = () => {
-    // Generate a secure random string for the state parameter for CSRF protection
+    // 1. Generate a secure random string for the state parameter for CSRF protection.
     const state =
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
+    
+    // 2. Store the state value in localStorage.
     localStorage.setItem(OAUTH_STATE_KEY, state);
 
+    // 3. Construct the full, explicit OAuth URL.
     const params = new URLSearchParams({
       app_id: DERIV_APP_ID,
       l: "EN",
@@ -89,18 +91,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       redirect_uri: REDIRECT_URI,
       scope: 'read trading information',
       state: state,
-      response_type: 'token'
+      response_type: 'token' // Explicitly request token for implicit grant flow
     });
     
+    // 4. Redirect the user to Deriv to authorize.
     const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
     window.location.href = oauthUrl;
   };
   
-  const loginAndDisableSim = () => {
-    toggleSimulationMode(false);
-    login();
-  }
-
   const logout = useCallback(() => {
     setIsLoading(true);
     localStorage.removeItem("deriv_token");
@@ -121,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("deriv_accounts", JSON.stringify(newAccounts));
     setToken(newToken);
     setAccounts(newAccounts);
+    toggleSimulationMode(false); // Turn off simulation mode on successful login
 
     if (newAccounts.length > 0) {
       const realAccount = newAccounts.find(acc => !acc.is_virtual);
@@ -151,16 +150,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token,
     accounts,
     selectedAccount,
-    login: loginAndDisableSim,
+    login,
     logout,
     selectAccount,
     setTokenAndAccounts,
     isSimulationMode,
     toggleSimulationMode: (isSim: boolean) => {
         toggleSimulationMode(isSim);
-        window.location.reload();
+        if(!isSim && !token) { // If turning off sim mode and not logged in, trigger login
+            login();
+        } else {
+            window.location.reload();
+        }
     },
-    loginAndDisableSim,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
