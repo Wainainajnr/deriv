@@ -21,43 +21,22 @@ export function AiSuggestionCard() {
 
   const isTradeSignalActive = (strategy === 'strategy1' && suggestion?.tradeSuggestion !== 'NO ENTRY') || (strategy === 'strategy2' && analysis.entryCondition !== 'NO ENTRY');
   const prevSignalState = useRef(false);
-
-  // Initialize AudioContext on user interaction if needed, or on mount
-  useEffect(() => {
-    const initAudio = () => {
-      if (!audioContextRef.current) {
+  
+  const playSound = () => {
+    // Initialize AudioContext on the first gesture if it doesn't exist or is suspended.
+    if (!audioContextRef.current) {
         try {
           audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
         } catch (e) {
           console.error("Web Audio API is not supported in this browser.", e);
+          return;
         }
-      }
-      // If context is suspended, try to resume it.
-      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-    };
-    
-    // Attempt to initialize on mount
-    initAudio();
-
-    // Also add a listener for the first user interaction
-    const handleFirstInteraction = () => {
-        initAudio();
-        window.removeEventListener('click', handleFirstInteraction);
-        window.removeEventListener('keydown', handleFirstInteraction);
-    };
-
-    window.addEventListener('click', handleFirstInteraction);
-    window.addEventListener('keydown', handleFirstInteraction);
-    
-    return () => {
-        window.removeEventListener('click', handleFirstInteraction);
-        window.removeEventListener('keydown', handleFirstInteraction);
     }
-  }, []);
 
-  const playSound = () => {
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+
     const audioContext = audioContextRef.current;
     if (!audioContext || audioContext.state !== 'running') {
       console.warn("AudioContext is not available or not running. Cannot play sound.");
