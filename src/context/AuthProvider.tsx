@@ -76,21 +76,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Math.random().toString(36).substring(2, 15);
     
     // 2. Store the state value in localStorage to verify it on callback.
-    localStorage.setItem(OAUTH_STATE_KEY, state);
+    try {
+        localStorage.setItem(OAUTH_STATE_KEY, state);
+    } catch (e) {
+        console.error("Could not save state to localStorage", e);
+        // Handle the error, maybe show a notification to the user
+        return;
+    }
+
 
     // 3. Construct the full, explicit OAuth URL.
     const params = new URLSearchParams({
       app_id: DERIV_APP_ID,
       l: "EN",
       state: state,
-      redirect_uri: REDIRECT_URI, // Use the configured redirect URI
+      redirect_uri: REDIRECT_URI,
       scope: 'read trading information',
-      response_type: 'token' // Explicitly request token for implicit grant flow
+      response_type: 'token'
     });
     
-    // 4. Redirect the user to Deriv to authorize.
     const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
-    window.location.href = oauthUrl;
+
+    // 4. Redirect the user to Deriv to authorize after a short delay
+    // to ensure localStorage has persisted.
+    setTimeout(() => {
+        window.location.href = oauthUrl;
+    }, 50);
   };
   
   const logout = useCallback(() => {
