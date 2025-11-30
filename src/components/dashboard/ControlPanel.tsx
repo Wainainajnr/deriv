@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { useTradingData } from "@/context/TradingDataProvider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Strategy } from "@/lib/analysis";
+import { useAuth } from "@/context/AuthProvider";
 
 const allVolatilityIndices = [
   { value: "R_10", label: "Volatility 10 Index" },
@@ -29,23 +30,24 @@ const allVolatilityIndices = [
   { value: "1HZ100V", label: "Volatility 100 (1s) Index" },
 ];
 
-const strategy2Indices = ["1HZ10V", "1HZ25V", "R_50"];
+const strategy2Indices = ["1HZ10V", "1HZ25V", "1HZ50V"];
 
 export function ControlPanel() {
-  const { symbol, setSymbol, strategy, setStrategy, stake, setStake } = useTradingData();
-
+  const { symbol, setSymbol, strategy, setStrategy, stake, setStake, currency } = useTradingData();
+  const { isSimulationMode } = useAuth();
+  
   const availableIndices = strategy === 'strategy2'
     ? allVolatilityIndices.filter(index => strategy2Indices.includes(index.value))
     : allVolatilityIndices;
 
   useEffect(() => {
-    // If the selected strategy is 2 and the current symbol is not in the allowed list,
-    // switch to the first available symbol for strategy 2.
     if (strategy === 'strategy2' && !strategy2Indices.includes(symbol)) {
       setSymbol(strategy2Indices[0]);
     }
   }, [strategy, symbol, setSymbol]);
 
+  const potentialPayout = parseFloat(stake) * 1.95; // Assuming ~95% payout
+  const displayCurrency = isSimulationMode ? 'USD' : currency;
 
   return (
     <Card className="glass-card">
@@ -88,14 +90,23 @@ export function ControlPanel() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="stake-input">Stake Amount</Label>
-          <Input
-            id="stake-input"
-            type="number"
-            value={stake}
-            onChange={(e) => setStake(e.target.value)}
-            min="0.35"
-            step="0.01"
-          />
+          <div className="flex items-center gap-2">
+             <Input
+                id="stake-input"
+                type="number"
+                value={stake}
+                onChange={(e) => setStake(e.target.value)}
+                min="0.35"
+                step="0.01"
+              />
+              <div className="flex flex-col items-end min-w-[120px]">
+                  <Label className="text-xs text-muted-foreground">Payout</Label>
+                  <span className="font-bold text-primary">
+                    {isNaN(potentialPayout) ? '0.00' : potentialPayout.toFixed(2)}
+                     <span className="text-xs text-muted-foreground ml-1">{displayCurrency}</span>
+                  </span>
+              </div>
+          </div>
         </div>
       </CardContent>
     </Card>
