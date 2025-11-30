@@ -80,10 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
     
-    // 2. Store the state value in localStorage.
+    // 2. Store the state value in localStorage to verify it on callback.
     localStorage.setItem(OAUTH_STATE_KEY, state);
 
-    // 3. Construct the full, explicit OAuth URL.
+    // 3. Construct the full, explicit OAuth URL for the implicit grant flow.
     const params = new URLSearchParams({
       app_id: DERIV_APP_ID,
       l: "EN",
@@ -139,9 +139,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleSimulationMode = useCallback((isSim: boolean) => {
-    localStorage.setItem("deriv_sim_mode", JSON.stringify(isSim));
-    setIsSimulationMode(isSim);
-  }, []);
+    const isActuallyChanging = isSim !== isSimulationMode;
+    if (!isActuallyChanging) return;
+
+    if (isSim) {
+      // Switching TO simulation mode
+      localStorage.setItem("deriv_sim_mode", JSON.stringify(true));
+      setIsSimulationMode(true);
+      window.location.reload();
+    } else {
+      // Switching OFF simulation mode
+      if (token) {
+        // If logged in, just switch and reload
+        localStorage.setItem("deriv_sim_mode", JSON.stringify(false));
+        setIsSimulationMode(false);
+        window.location.reload();
+      } else {
+        // If not logged in, trigger the login flow
+        login();
+      }
+    }
+  }, [isSimulationMode, token]);
 
 
   const value = {
@@ -155,14 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     selectAccount,
     setTokenAndAccounts,
     isSimulationMode,
-    toggleSimulationMode: (isSim: boolean) => {
-        toggleSimulationMode(isSim);
-        if(!isSim && !token) { // If turning off sim mode and not logged in, trigger login
-            login();
-        } else {
-            window.location.reload();
-        }
-    },
+    toggleSimulationMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
