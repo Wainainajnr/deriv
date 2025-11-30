@@ -27,7 +27,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DERIV_APP_ID = process.env.NEXT_PUBLIC_DERIV_APP_ID || "114068";
+const DERIV_APP_ID = "114068";
 const REDIRECT_URI = "https://derivedge.vercel.app/callback";
 const OAUTH_STATE_KEY = "deriv_oauth_state";
 
@@ -134,14 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleSimModeChange = useCallback(() => {
+  const toggleSimulationMode = useCallback(() => {
     const newState = !isSimulationMode;
     localStorage.setItem("deriv_sim_mode", JSON.stringify(newState));
     setIsSimulationMode(newState);
-    if (!token || newState) {
-        window.location.reload();
-    }
-  }, [isSimulationMode, token]);
+    window.location.reload();
+  }, [isSimulationMode]);
 
 
   const value = {
@@ -155,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     selectAccount,
     setTokenAndAccounts,
     isSimulationMode,
-    toggleSimulationMode: handleSimModeChange,
+    toggleSimulationMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
