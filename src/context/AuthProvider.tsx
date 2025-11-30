@@ -74,9 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = () => {
-    localStorage.setItem("deriv_sim_mode", JSON.stringify(false));
-    setIsSimulationMode(false);
-
     // Generate a random string for the state parameter for CSRF protection
     const state =
       Math.random().toString(36).substring(2, 15) +
@@ -90,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       redirect_uri: REDIRECT_URI,
       scope: 'read trading information',
       state: state,
+      response_type: 'token'
     });
     
     const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
@@ -138,8 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const newState = !isSimulationMode;
     localStorage.setItem("deriv_sim_mode", JSON.stringify(newState));
     setIsSimulationMode(newState);
-    window.location.reload();
-  }, [isSimulationMode]);
+    if (token) {
+        window.location.reload();
+    }
+  }, [isSimulationMode, token]);
 
 
   const value = {
