@@ -16,13 +16,55 @@ export function AiSuggestionCard() {
   const [suggestion, setSuggestion] = useState<AutomatedTradeSuggestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const isTradeSignalActive = (strategy === 'strategy1' && suggestion?.tradeSuggestion !== 'NO ENTRY') || (strategy === 'strategy2' && analysis.entryCondition !== 'NO ENTRY');
   const prevSignalState = useRef(false);
 
+  // Initialize AudioContext on user interaction if needed, or on mount
+  useEffect(() => {
+    const initAudio = () => {
+      if (!audioContextRef.current) {
+        try {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        } catch (e) {
+          console.error("Web Audio API is not supported in this browser.", e);
+        }
+      }
+      // If context is suspended, try to resume it.
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
+    };
+    
+    // Attempt to initialize on mount
+    initAudio();
+
+    // Also add a listener for the first user interaction
+    const handleFirstInteraction = () => {
+        initAudio();
+        window.removeEventListener('click', handleFirstInteraction);
+        window.removeEventListener('keydown', handleFirstInteraction);
+    };
+
+    window.addEventListener('click', handleFirstInteraction);
+    window.addEventListener('keydown', handleFirstInteraction);
+    
+    return () => {
+        window.removeEventListener('click', handleFirstInteraction);
+        window.removeEventListener('keydown', handleFirstInteraction);
+    }
+  }, []);
+
   const playSound = () => {
+    const audioContext = audioContextRef.current;
+    if (!audioContext || audioContext.state !== 'running') {
+      console.warn("AudioContext is not available or not running. Cannot play sound.");
+      return;
+    }
+    
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
