@@ -93,12 +93,10 @@ export function Header() {
             </DropdownMenu>
           </>
         ) : (
-          !isSimulationMode && (
-            <Button onClick={login}>
-                <Link className="mr-2 h-4 w-4" />
-                Connect with Deriv
-            </Button>
-          )
+          <Button onClick={login}>
+              <Link className="mr-2 h-4 w-4" />
+              Connect with Deriv
+          </Button>
         )}
       </div>
     </header>
