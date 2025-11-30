@@ -56,7 +56,7 @@ export default function CallbackPage() {
         }));
 
         setTokenAndAccounts(token, fullAccounts);
-        router.replace("/dashboard");
+        router.replace("/");
       } else {
         console.error("OAuth callback error: Token or account list not found in URL hash.");
         router.replace("/login?error=auth_failed");

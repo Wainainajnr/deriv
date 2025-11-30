@@ -27,9 +27,9 @@ export default function LoginPage() {
           <div className="mx-auto mb-4">
             <Logo />
           </div>
-          <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl font-headline">Welcome to DerivEdge</CardTitle>
           <CardDescription>
-            Connect your Deriv account to start trading.
+            Connect your Deriv account or use Simulation Mode to start trading.
           </CardDescription>
         </CardHeader>
         <CardContent>
