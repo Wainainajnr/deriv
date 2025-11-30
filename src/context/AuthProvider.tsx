@@ -27,7 +27,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DERIV_APP_ID = process.env.NEXT_PUBLIC_DERIV_APP_ID || "16929"; 
+const DERIV_APP_ID = process.env.NEXT_PUBLIC_DERIV_APP_ID || "114068";
+const REDIRECT_URI = "https://derivedge.vercel.app/callback";
 const OAUTH_STATE_KEY = "deriv_oauth_state";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -86,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       app_id: DERIV_APP_ID,
       l: "EN",
       brand: "deriv",
-      redirect_uri: `${window.location.origin}/callback`,
+      redirect_uri: REDIRECT_URI,
       scope: 'read trading information',
       state: state,
     });
@@ -137,8 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const newState = !isSimulationMode;
     localStorage.setItem("deriv_sim_mode", JSON.stringify(newState));
     setIsSimulationMode(newState);
-    if (newState || ( !newState && !token)) {
-      window.location.reload();
+    if (!token || newState) {
+        window.location.reload();
     }
   }, [isSimulationMode, token]);
 
