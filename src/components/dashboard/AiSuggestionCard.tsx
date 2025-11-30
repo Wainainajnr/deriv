@@ -102,6 +102,7 @@ export function AiSuggestionCard() {
   }, [isTradeSignalActive]);
   
   const handleTrade = () => {
+    // This is the user gesture that allows the AudioContext to start
     createAudioContext();
 
     if (!isLoggedIn) {

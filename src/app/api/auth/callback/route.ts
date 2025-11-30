@@ -61,25 +61,39 @@ export async function GET(req: NextRequest) {
     }
 
     const tokenData = await tokenResponse.json();
-    const { access_token, loginid_list } = tokenData;
     
-    if (!access_token || !loginid_list) {
+    const { access_token } = tokenData;
+
+    // Use a separate call to authorize and get account list
+    const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
+
+    const getAccounts = new Promise<DerivAccount[]>((resolve, reject) => {
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ authorize: access_token }));
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.error) {
+                reject(new Error(data.error.message));
+            } else if (data.msg_type === 'authorize') {
+                resolve(data.authorize.account_list);
+                ws.close();
+            }
+        };
+        ws.onerror = (error) => {
+            reject(new Error('WebSocket connection error'));
+        }
+    });
+
+    const accounts = await getAccounts;
+    
+    if (!access_token || !accounts) {
          console.error("Token or account list missing from token exchange response");
          const errorUrl = new URL('/login', req.url);
          errorUrl.searchParams.set('error', 'auth_failed');
          return NextResponse.redirect(errorUrl);
     }
-
-    const accounts: DerivAccount[] = loginid_list.map((acc: any) => ({
-        loginid: acc.loginid,
-        is_virtual: acc.is_virtual,
-        currency: acc.currency,
-        account_type: acc.account_type,
-        account_category: acc.account_category,
-        is_disabled: acc.is_disabled,
-        created_at: acc.created_at,
-        landing_company_name: acc.landing_company_name
-    }));
 
     const cookieOptions = {
         httpOnly: true,
@@ -92,7 +106,8 @@ export async function GET(req: NextRequest) {
     cookieStore.set(OAUTH_TOKEN_COOKIE_NAME, access_token, cookieOptions);
     cookieStore.set(ACCOUNTS_COOKIE_NAME, JSON.stringify(accounts), cookieOptions);
 
-    const accountToSelect = accounts.find(acc => !acc.is_virtual) || accounts[0];
+    // Prefer a real account, otherwise fall back to the first virtual account
+    const accountToSelect = accounts.find(acc => !acc.is_virtual) || accounts.find(acc => acc.is_virtual) || accounts[0];
     if (accountToSelect) {
         cookieStore.set(SELECTED_ACCOUNT_COOKIE_NAME, JSON.stringify(accountToSelect), cookieOptions);
     }
