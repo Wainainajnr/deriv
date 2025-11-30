@@ -22,7 +22,7 @@ interface AuthContextType {
   selectAccount: (loginid: string) => void;
   setTokenAndAccounts: (token: string, accounts: DerivAccount[]) => void;
   isSimulationMode: boolean;
-  toggleSimulationMode: () => void;
+  toggleSimulationMode: (forceState?: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -118,23 +118,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleSimulationMode = useCallback((forceState?: boolean) => {
-    setIsSimulationMode(prev => {
-        const newState = forceState ?? !prev;
-        localStorage.setItem("deriv_sim_mode", JSON.stringify(newState));
-        // If we are turning simulation mode off, but we're not logged in, redirect to login
-        if (newState === false && !token) {
-            router.push('/login');
-        }
-        if (newState === true) {
-            // If turning simulation mode ON, clear the selected real account details
-            // to avoid confusion, but don't log out fully
-            setSelectedAccount(null);
-            localStorage.removeItem("deriv_selected_account");
-        }
-        window.location.reload(); // Reload to reset contexts
-        return newState;
-    });
-  }, [token, router]);
+    const newState = forceState ?? !isSimulationMode;
+    localStorage.setItem("deriv_sim_mode", JSON.stringify(newState));
+    
+    // If we are turning simulation mode off, but we're not logged in, we shouldn't redirect here.
+    // The login function will handle the redirect.
+    if (newState === false && !token) {
+        // Do nothing, let the login function handle the redirect.
+    } else if (newState === true) {
+        // If turning simulation mode ON, clear the selected real account details
+        // to avoid confusion, but don't log out fully.
+        setSelectedAccount(null);
+        localStorage.removeItem("deriv_selected_account");
+        window.location.reload(); // Reload to reset contexts only when switching TO sim mode
+    } else if (forceState === undefined) { // This means it's a toggle
+        window.location.reload();
+    }
+    
+    setIsSimulationMode(newState);
+  }, [isSimulationMode, token]);
 
   const value = {
     isLoggedIn: !isLoading && !!token && !isSimulationMode,
