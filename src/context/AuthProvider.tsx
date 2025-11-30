@@ -43,7 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // This effect triggers the redirect once the oauthUrl state is set.
-    // This solves the race condition by ensuring React state is updated before redirecting.
     if (oauthUrl) {
       window.location.href = oauthUrl;
     }
@@ -86,11 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Math.random().toString(36).substring(2, 15);
     
     try {
-        // Use sessionStorage as it's tied to the tab session and more reliable for OAuth redirects.
         sessionStorage.setItem(OAUTH_STATE_KEY, state);
     } catch (e) {
         console.error("Could not save state to sessionStorage", e);
-        // Optionally, show an error to the user
         return;
     }
 
@@ -99,11 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       l: "EN",
       state: state,
       redirect_uri: REDIRECT_URI,
-      scope: 'read trading information',
+      scope: 'read trade trading_information',
       response_type: 'token'
     });
     
-    // Set the URL in state, letting the useEffect hook handle the redirect.
     setOauthUrl(`https://oauth.deriv.com/oauth2/authorize?${params.toString()}`);
   };
   
@@ -151,11 +147,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const toggleSimulationMode = useCallback(() => {
     const newSimMode = !isSimulationMode;
     if (!newSimMode && !token) {
-        login();
+        login(); // This will trigger the OAuth flow.
     } else {
         localStorage.setItem("deriv_sim_mode", JSON.stringify(newSimMode));
         setIsSimulationMode(newSimMode);
-        window.location.reload();
+        // Do not reload here to avoid interrupting the OAuth flow.
+        if (newSimMode || token) {
+            window.location.reload();
+        }
     }
   }, [isSimulationMode, token]);
 
