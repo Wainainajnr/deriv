@@ -15,29 +15,22 @@ export default function CallbackPage() {
 
   useEffect(() => {
     try {
-      // Deriv's implicit flow returns params in the hash, not the search query.
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
-      const token = params.get("token");
+      const token = params.get("access_token");
       const accountListStr = params.get("loginid_list");
       const state = params.get("state");
 
-      // 1. Retrieve the saved state from sessionStorage.
       const savedState = sessionStorage.getItem(OAUTH_STATE_KEY);
-      
-      // 2. Immediately remove the state from storage to prevent reuse.
       sessionStorage.removeItem(OAUTH_STATE_KEY);
 
-      // 3. CRITICAL: Verify that the received state matches the saved state.
       if (!state || state !== savedState) {
           console.error("OAuth state mismatch. Possible CSRF attack.");
-          // Redirect to login with a specific error message.
           router.replace("/login?error=state_mismatch");
           return;
       }
 
       if (token && accountListStr) {
-        // The account list is a string like "CR123:real:USD+VRTC456:demo:USD"
         const accounts: DerivAccount[] = accountListStr.split('+').map(accStr => {
             const [loginid, accountType, currency] = accStr.split(':');
             const isVirtual = accountType === 'demo' ? 1 : 0;
@@ -49,17 +42,14 @@ export default function CallbackPage() {
                 account_category: isVirtual ? 'demo' : 'real',
                 is_disabled: 0,
                 created_at: 0,
-                landing_company_name: '' // This info is not in the callback
+                landing_company_name: '' // This info is not in the callback, will be populated later
             };
         });
-        
-        // Add landing_company_name for consistency with the DerivAccount type
-        const fullAccounts = accounts.map(acc => ({
-            ...acc,
-            landing_company_name: acc.is_virtual ? 'virtual' : 'svg' // Common values
-        }));
 
-        setTokenAndAccounts(token, fullAccounts);
+        // Clear the URL hash for security
+        window.history.replaceState(null, '', window.location.pathname);
+
+        setTokenAndAccounts(token, accounts);
         router.replace("/");
       } else {
         console.error("OAuth callback error: Token or account list not found in URL hash.");
