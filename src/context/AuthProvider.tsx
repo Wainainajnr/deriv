@@ -70,22 +70,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = () => {
-    // 1. Generate a secure random string for the state parameter for CSRF protection.
     const state =
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
     
-    // 2. Store the state value in localStorage to verify it on callback.
     try {
         localStorage.setItem(OAUTH_STATE_KEY, state);
     } catch (e) {
         console.error("Could not save state to localStorage", e);
-        // Handle the error, maybe show a notification to the user
         return;
     }
 
-
-    // 3. Construct the full, explicit OAuth URL.
     const params = new URLSearchParams({
       app_id: DERIV_APP_ID,
       l: "EN",
@@ -96,12 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     
     const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
-
-    // 4. Redirect the user to Deriv to authorize after a short delay
-    // to ensure localStorage has persisted.
-    setTimeout(() => {
-        window.location.href = oauthUrl;
-    }, 50);
+    window.location.href = oauthUrl;
   };
   
   const logout = useCallback(() => {
@@ -125,12 +115,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(newToken);
     setAccounts(newAccounts);
     
-    // On successful login, always turn off simulation mode
     localStorage.setItem("deriv_sim_mode", JSON.stringify(false));
     setIsSimulationMode(false);
 
     if (newAccounts.length > 0) {
-      // Prioritize selecting a real account, otherwise the first one
       const realAccount = newAccounts.find(acc => !acc.is_virtual);
       const accountToSelect = realAccount || newAccounts[0];
       setSelectedAccount(accountToSelect);
@@ -143,13 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (account && account.loginid !== selectedAccount?.loginid) {
       setSelectedAccount(account);
       localStorage.setItem("deriv_selected_account", JSON.stringify(account));
-      window.location.reload(); // Reload to apply the new account context fully
+      window.location.reload(); 
     }
   };
 
   const toggleSimulationMode = useCallback(() => {
     const newSimMode = !isSimulationMode;
-    // If we're turning simulation OFF, and we're not logged in, trigger login
     if (!newSimMode && !token) {
         login();
     } else {
