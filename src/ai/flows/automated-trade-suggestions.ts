@@ -59,7 +59,6 @@ export async function automatedTradeSuggestions(
 
 const prompt = ai.definePrompt({
   name: 'automatedTradeSuggestionsPrompt',
-  model: googleAI('gemini-2.5-flash'),
   input: {schema: AutomatedTradeSuggestionsInputSchema},
   output: {schema: AutomatedTradeSuggestionsOutputSchema},
   prompt: `You are an expert trading advisor specializing in Even/Odd digit trading on the Deriv platform. Analyze the provided real-time market data and provide a trade suggestion, a confidence level, and a detailed reasoning.
@@ -82,7 +81,7 @@ const automatedTradeSuggestionsFlow = ai.defineFlow(
     outputSchema: AutomatedTradeSuggestionsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await prompt(input, { model: 'googleai/gemini-2.5-flash' });
     return output!;
   }
 );
