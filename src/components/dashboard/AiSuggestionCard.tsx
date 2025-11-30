@@ -99,18 +99,18 @@ export function AiSuggestionCard() {
         return;
     }
     
-    let tradeType: 'ENTER EVEN NOW' | 'ENTER ODD NOW' | 'NO ENTRY' = 'NO ENTRY';
-
-    if (strategy === 'strategy1' && suggestion) {
-        tradeType = suggestion.tradeSuggestion as any;
+    if (strategy === 'strategy1') {
+        if (suggestion && suggestion.tradeSuggestion === 'ENTER EVEN NOW') {
+            buyContract('DIGITEVEN', parseFloat(stake)); 
+        } else if (suggestion && suggestion.tradeSuggestion === 'ENTER ODD NOW') {
+            buyContract('DIGITODD', parseFloat(stake));
+        }
     } else if (strategy === 'strategy2') {
-        tradeType = analysis.entryCondition;
-    }
-
-    if (tradeType === 'ENTER EVEN NOW') {
-      buyContract('DIGITEVEN', parseFloat(stake)); 
-    } else if (tradeType === 'ENTER ODD NOW') {
-      buyContract('DIGITODD', parseFloat(stake));
+        if (analysis.entryCondition === 'ENTER EVEN NOW') {
+            buyContract('DIGITEVEN', parseFloat(stake)); 
+        } else if (analysis.entryCondition === 'ENTER ODD NOW') {
+            buyContract('DIGITODD', parseFloat(stake));
+        }
     }
   }
 
