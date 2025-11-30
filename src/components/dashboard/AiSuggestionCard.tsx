@@ -23,7 +23,7 @@ export function AiSuggestionCard() {
   const prevSignalState = useRef(false);
   
   const playSound = () => {
-    // Initialize AudioContext on the first gesture if it doesn't exist or is suspended.
+    // Defer AudioContext creation until the first user gesture (sound playback).
     if (!audioContextRef.current) {
         try {
           audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -33,10 +33,11 @@ export function AiSuggestionCard() {
         }
     }
 
+    // Resume the context if it's suspended
     if (audioContextRef.current.state === 'suspended') {
       audioContextRef.current.resume();
     }
-
+    
     const audioContext = audioContextRef.current;
     if (!audioContext || audioContext.state !== 'running') {
       console.warn("AudioContext is not available or not running. Cannot play sound.");
