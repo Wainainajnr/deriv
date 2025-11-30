@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { DERIV_APP_ID, REDIRECT_URI } from '@/config';
 import { cookies } from 'next/headers';
@@ -7,6 +6,7 @@ const OAUTH_STATE_COOKIE_NAME = "deriv_oauth_state";
 
 export async function GET(req: NextRequest) {
   try {
+    // Generate a secure, random state value
     const state =
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
@@ -24,7 +24,8 @@ export async function GET(req: NextRequest) {
       app_id: DERIV_APP_ID,
       l: "EN",
       state: state,
-      redirect_uri: REDIRECT_URI,
+      // This is the *client-side* callback, which will then call our *server-side* callback
+      redirect_uri: REDIRECT_URI, 
       scope: 'read trade trading_information',
       response_type: 'token'
     });

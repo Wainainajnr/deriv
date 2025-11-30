@@ -1,73 +1,47 @@
-
 "use client";
 
 import { useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthProvider";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { DerivAccount } from "@/types/deriv";
-import { getCookie } from "cookies-next";
-
-
-const OAUTH_STATE_COOKIE_NAME = "deriv_oauth_state";
 
 export default function CallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { setTokenAndAccounts } = useAuth();
 
   useEffect(() => {
-    // Deriv returns params in the hash, not search params.
-    // We need to parse it manually from the client side.
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    
-    const token = params.get("access_token");
-    const accountListStr = params.get("loginid_list");
-    const state = params.get("state");
-
-    // Retrieve state from the secure cookie
-    const savedState = getCookie(OAUTH_STATE_COOKIE_NAME);
-    
-    if (!state || state !== savedState) {
-        console.error("OAuth state mismatch. Possible CSRF attack.");
-        router.replace("/login?error=state_mismatch");
-        return;
-    }
-
-    if (token && accountListStr) {
-      const accounts: DerivAccount[] = accountListStr.split('+').map(accStr => {
-          const [loginid, accountType, currency] = accStr.split(':');
-          const isVirtual = accountType === 'demo' ? 1 : 0;
-          return {
-              loginid,
-              is_virtual: isVirtual,
-              currency,
-              account_type: accountType,
-              account_category: isVirtual ? 'demo' : 'real',
-              is_disabled: 0,
-              created_at: 0,
-              landing_company_name: '' // This info is not in the callback, will be populated later
-          };
-      });
-
-      // Clear the URL hash for security
-      window.history.replaceState(null, '', window.location.pathname);
-
-      setTokenAndAccounts(token, accounts);
-      router.replace("/");
+    // The OAuth provider redirects here, but the token is in the hash.
+    // We can't access the hash on the server, so the client must send it.
+    if (window.location.hash) {
+      // Forward the hash to our server-side callback handler.
+      // The server will validate the state and set cookies.
+      fetch(`/api/auth/callback${window.location.hash.replace("#", "?")}`)
+        .then((res) => {
+          if (res.ok) {
+            // If the server successfully processed the token, redirect to home.
+            router.replace("/");
+          } else {
+            // If the server found an error (e.g., state mismatch), redirect to login with an error.
+            res.json().then(body => {
+              console.error("OAuth callback error:", body.error);
+              router.replace(`/login?error=${body.error || 'auth_failed'}`);
+            });
+          }
+        })
+        .catch(err => {
+            console.error("Error calling callback API:", err);
+            router.replace("/login?error=callback_api_failed");
+        });
     } else {
-      console.error("OAuth callback error: Token or account list not found in URL hash.");
-      router.replace("/login?error=auth_failed");
+        // Handle cases where there's no hash
+        console.error("No hash found in callback URL");
+        router.replace("/login?error=no_token");
     }
-
-  }, [router, setTokenAndAccounts]);
+  }, [router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Authenticating...</p>
+        <p className="text-muted-foreground">Finalizing authentication...</p>
       </div>
     </div>
   );
