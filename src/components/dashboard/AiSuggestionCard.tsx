@@ -68,7 +68,7 @@ export function AiSuggestionCard() {
     };
 
     if (strategy === 'strategy1') {
-        const timer = setTimeout(getSuggestion, 10000); 
+        const timer = setTimeout(getSuggestion, 2000); 
         return () => clearTimeout(timer);
     }
   }, [analysis, strategy]);
