@@ -15,12 +15,10 @@ import { ChevronDown, LogOut, CircleUserRound, Link, Moon, Sun } from "lucide-re
 import { useTradingData } from "@/context/TradingDataProvider";
 import { Logo } from "../icons/Logo";
 import Image from "next/image";
-import { Switch } from "../ui/switch";
-import { Label } from "../ui/label";
 import { useTheme } from "next-themes";
 
 export function Header() {
-  const { accounts, selectedAccount, logout, selectAccount, isLoggedIn, login, isSimulationMode, toggleSimulationMode } = useAuth();
+  const { accounts, selectedAccount, logout, selectAccount, isLoggedIn, login } = useAuth();
   const { balance, currency } = useTradingData();
   const { setTheme, theme } = useTheme();
 
@@ -37,11 +35,6 @@ export function Header() {
           <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
-
-        <div className="flex items-center space-x-2">
-            <Switch id="simulation-mode" checked={isSimulationMode} onCheckedChange={toggleSimulationMode} />
-            <Label htmlFor="simulation-mode">Simulation</Label>
-        </div>
 
         {isLoggedIn && selectedAccount ? (
           <>

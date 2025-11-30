@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthProvider";
 
 export function AiSuggestionCard() {
   const { analysis, buyContract, strategy, stake } = useTradingData();
-  const { isSimulationMode, isLoggedIn } = useAuth();
+  const { isLoggedIn, login } = useAuth();
   const [suggestion, setSuggestion] = useState<AutomatedTradeSuggestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -104,11 +104,11 @@ export function AiSuggestionCard() {
   }, [isTradeSignalActive]);
   
   const handleTrade = () => {
-    if (!isLoggedIn && !isSimulationMode) {
+    if (!isLoggedIn) {
         toast({
-            variant: "destructive",
-            title: "Not Logged In",
-            description: "Please connect your Deriv account or enable Simulation Mode to trade.",
+            title: "Please Log In",
+            description: "You must connect your Deriv account to execute a trade.",
+            action: <Button onClick={login}>Login</Button>
         });
         return;
     }

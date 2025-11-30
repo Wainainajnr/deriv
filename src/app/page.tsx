@@ -20,24 +20,10 @@ import { StrategyTwoExplanation } from "@/components/dashboard/StrategyTwoExplan
 import { StrategyOneExplanation } from "@/components/dashboard/StrategyOneExplanation";
 import { Header } from "@/components/shared/Header";
 import { useAuth } from "@/context/AuthProvider";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 export default function HomePage() {
   const { strategy } = useTradingData();
-  const { isLoggedIn, isSimulationMode } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoggedIn && !isSimulationMode) {
-      router.push('/login');
-    }
-  }, [isLoggedIn, isSimulationMode, router]);
-
-
-  if (!isLoggedIn && !isSimulationMode) {
-    return null; // or a loading spinner
-  }
+  const { isLoggedIn } = useAuth();
 
   return (
     <div className="flex min-h-screen w-full flex-col">

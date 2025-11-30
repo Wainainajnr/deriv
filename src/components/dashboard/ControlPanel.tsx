@@ -34,7 +34,7 @@ const strategy2Indices = ["1HZ10V", "1HZ25V", "R_50"];
 
 export function ControlPanel() {
   const { symbol, setSymbol, strategy, setStrategy, stake, setStake, currency } = useTradingData();
-  const { isSimulationMode } = useAuth();
+  const { isLoggedIn } = useAuth();
   
   const availableIndices = strategy === 'strategy2'
     ? allVolatilityIndices.filter(index => strategy2Indices.includes(index.value))
@@ -47,7 +47,7 @@ export function ControlPanel() {
   }, [strategy, symbol, setSymbol]);
 
   const potentialPayout = parseFloat(stake) * 1.95; // Assuming ~95% payout
-  const displayCurrency = isSimulationMode ? 'USD' : currency;
+  const displayCurrency = isLoggedIn ? currency : 'USD';
 
   return (
     <Card className="glass-card">

@@ -1,13 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import type { DerivAccount } from '@/types/deriv';
-import { DERIV_APP_ID } from '@/config';
+import { DERIV_APP_ID, REDIRECT_URI } from '@/config';
 
 const OAUTH_STATE_COOKIE_NAME = "deriv_oauth_state";
 const OAUTH_TOKEN_COOKIE_NAME = "deriv_oauth_token";
 const ACCOUNTS_COOKIE_NAME = "deriv_accounts";
 const SELECTED_ACCOUNT_COOKIE_NAME = "deriv_selected_account";
-const SIM_MODE_COOKIE_NAME = "deriv_sim_mode";
 
 
 export async function GET(req: NextRequest) {
@@ -22,14 +21,18 @@ export async function GET(req: NextRequest) {
   if (!state || !savedState || state !== savedState) {
     console.error("OAuth state mismatch. Possible CSRF attack.", { urlState: state, cookieState: savedState });
     cookieStore.delete(OAUTH_STATE_COOKIE_NAME);
-    return NextResponse.json({ error: "state_mismatch" }, { status: 400 });
+    const errorUrl = new URL('/login', req.url);
+    errorUrl.searchParams.set('error', 'state_mismatch');
+    return NextResponse.redirect(errorUrl);
   }
 
   cookieStore.delete(OAUTH_STATE_COOKIE_NAME);
 
   if (!code) {
       console.error("Authorization code missing from callback");
-      return NextResponse.json({ error: "auth_failed" }, { status: 400 });
+      const errorUrl = new URL('/login', req.url);
+      errorUrl.searchParams.set('error', 'auth_failed');
+      return NextResponse.redirect(errorUrl);
   }
 
   try {
@@ -45,14 +48,16 @@ export async function GET(req: NextRequest) {
             client_id: DERIV_APP_ID,
             // The client_secret should be stored as an environment variable and not hardcoded
             client_secret: process.env.DERIV_CLIENT_SECRET || '', 
-            redirect_uri: process.env.REDIRECT_URI || 'https://derivedge.vercel.app/callback'
+            redirect_uri: REDIRECT_URI,
         }),
     });
     
     if (!tokenResponse.ok) {
         const errorBody = await tokenResponse.text();
         console.error("Failed to exchange code for token:", errorBody);
-        return NextResponse.json({ error: "token_exchange_failed" }, { status: 400 });
+        const errorUrl = new URL('/login', req.url);
+        errorUrl.searchParams.set('error', 'token_exchange_failed');
+        return NextResponse.redirect(errorUrl);
     }
 
     const tokenData = await tokenResponse.json();
@@ -60,7 +65,9 @@ export async function GET(req: NextRequest) {
     
     if (!access_token || !loginid_list) {
          console.error("Token or account list missing from token exchange response");
-        return NextResponse.json({ error: "auth_failed" }, { status: 400 });
+         const errorUrl = new URL('/login', req.url);
+         errorUrl.searchParams.set('error', 'auth_failed');
+         return NextResponse.redirect(errorUrl);
     }
 
     const accounts: DerivAccount[] = loginid_list.map((acc: any) => ({
@@ -90,12 +97,12 @@ export async function GET(req: NextRequest) {
         cookieStore.set(SELECTED_ACCOUNT_COOKIE_NAME, JSON.stringify(accountToSelect), cookieOptions);
     }
     
-    cookieStore.set(SIM_MODE_COOKIE_NAME, 'false', cookieOptions);
-
-    return NextResponse.json({ success: true });
+    return NextResponse.redirect(new URL('/', req.url));
 
   } catch (error) {
     console.error("Error processing callback:", error);
-    return NextResponse.json({ error: "callback_processing_failed" }, { status: 500 });
+    const errorUrl = new URL('/login', req.url);
+    errorUrl.searchParams.set('error', 'callback_processing_failed');
+    return NextResponse.redirect(errorUrl);
   }
 }

@@ -29,7 +29,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-headline">Welcome to DerivEdge</CardTitle>
           <CardDescription>
-            Connect your Deriv account or use Simulation Mode to start trading.
+            Connect your Deriv account to start trading.
           </CardDescription>
         </CardHeader>
         <CardContent>

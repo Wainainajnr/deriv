@@ -16,7 +16,6 @@ import { getCookie, deleteCookie, setCookie } from "cookies-next";
 const OAUTH_TOKEN_COOKIE_NAME = "deriv_oauth_token";
 const ACCOUNTS_COOKIE_NAME = "deriv_accounts";
 const SELECTED_ACCOUNT_COOKIE_NAME = "deriv_selected_account";
-const SIM_MODE_COOKIE_NAME = "deriv_sim_mode";
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -27,8 +26,6 @@ interface AuthContextType {
   login: () => void;
   logout: () => void;
   selectAccount: (loginid: string) => void;
-  isSimulationMode: boolean;
-  toggleSimulationMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,7 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<DerivAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<DerivAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSimulationMode, setIsSimulationMode] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -47,7 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = getCookie(OAUTH_TOKEN_COOKIE_NAME);
       const storedAccounts = getCookie(ACCOUNTS_COOKIE_NAME);
       const storedSelectedAccount = getCookie(SELECTED_ACCOUNT_COOKIE_NAME);
-      const storedSimMode = getCookie(SIM_MODE_COOKIE_NAME);
 
       if (storedToken) {
          setToken(storedToken);
@@ -58,11 +53,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          } else if (parsedAccounts.length > 0) {
             setSelectedAccount(parsedAccounts[0]);
          }
-         // If a token exists, the user is logged in, so sim mode should be false unless explicitly set.
-         setIsSimulationMode(storedSimMode === 'true');
-      } else {
-        // No token, so default to simulation mode
-        setIsSimulationMode(true);
       }
     } catch (error) {
       console.error("Failed to parse auth data from cookies", error);
@@ -70,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       deleteCookie(OAUTH_TOKEN_COOKIE_NAME);
       deleteCookie(ACCOUNTS_COOKIE_NAME);
       deleteCookie(SELECTED_ACCOUNT_COOKIE_NAME);
-      deleteCookie(SIM_MODE_COOKIE_NAME);
     } finally {
       setIsLoading(false);
     }
@@ -87,13 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     deleteCookie(OAUTH_TOKEN_COOKIE_NAME, { path: '/' });
     deleteCookie(ACCOUNTS_COOKIE_NAME, { path: '/' });
     deleteCookie(SELECTED_ACCOUNT_COOKIE_NAME, { path: '/' });
-    // Explicitly set sim mode to true on logout
-    setCookie(SIM_MODE_COOKIE_NAME, 'true', { path: '/' });
     
     setToken(null);
     setAccounts([]);
     setSelectedAccount(null);
-    setIsSimulationMode(true);
     setIsLoading(false);
     router.push("/login");
   }, [router]);
@@ -108,22 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const toggleSimulationMode = useCallback(() => {
-    const newSimMode = !isSimulationMode;
-    if (!newSimMode && !token) {
-        // If turning sim mode OFF and not logged in, initiate login
-        login();
-    } else {
-        // Otherwise, just toggle the state and reload to reflect changes
-        setCookie(SIM_MODE_COOKIE_NAME, newSimMode.toString(), { path: '/' });
-        setIsSimulationMode(newSimMode);
-        window.location.reload();
-    }
-  }, [isSimulationMode, token]);
-
-
   const value = {
-    isLoggedIn: !isLoading && !!token && !isSimulationMode,
+    isLoggedIn: !isLoading && !!token,
     isLoading,
     token,
     accounts,
@@ -131,8 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     selectAccount,
-    isSimulationMode,
-    toggleSimulationMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

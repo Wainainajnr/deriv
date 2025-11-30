@@ -4,13 +4,11 @@
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { useDerivWebSocket } from '@/hooks/useDerivWebSocket';
 import { useAuth } from './AuthProvider';
-import type { TickResponse, BalanceResponse, AuthorizeResponse, OpenContract, PortfolioResponse, BuyResponse, TransactionResponse, SimulatedContract } from '@/types/deriv';
+import type { TickResponse, BalanceResponse, AuthorizeResponse, OpenContract, PortfolioResponse, BuyResponse, TransactionResponse } from '@/types/deriv';
 import { analyzeDigits, type DigitAnalysis, type Strategy, getLastDigit } from '@/lib/analysis';
 import { useToast } from '@/hooks/use-toast';
 
 const MAX_TICKS = 100;
-const SIMULATION_STARTING_BALANCE = 10000;
-const SIMULATED_PAYOUT_PERCENTAGE = 0.95; // 95% payout for simulated wins
 
 interface TradingDataContextType {
   isConnected: boolean;
@@ -33,7 +31,7 @@ const TradingDataContext = createContext<TradingDataContextType | undefined>(und
 
 export function TradingDataProvider({ children }: { children: ReactNode }) {
   const { isConnected, sendMessage, subscribe } = useDerivWebSocket();
-  const { selectedAccount, token, isLoggedIn, isSimulationMode } = useAuth();
+  const { selectedAccount, token, isLoggedIn } = useAuth();
   const [symbol, setSymbolState] = useState('R_100');
   const [strategy, setStrategy] = useState<Strategy>('strategy1');
   const [stake, setStake] = useState('1');
@@ -52,7 +50,6 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   const [activeContracts, setActiveContracts] = useState<OpenContract[]>([]);
   const [lastTradeResult, setLastTradeResult] = useState<{ status: 'won' | 'lost', profit: number } | null>(null);
 
-  const [simulatedContracts, setSimulatedContracts] = useState<SimulatedContract[]>([]);
   const { toast } = useToast();
 
   const setSymbol = useCallback((newSymbol: string) => {
@@ -61,20 +58,6 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     setTicks([]);
     setSymbolState(newSymbol);
   }, [symbol, sendMessage]);
-  
-  // Set initial balance for simulation mode
-  useEffect(() => {
-    if (isSimulationMode) {
-      const storedSimBalance = localStorage.getItem('deriv_sim_balance');
-      if (storedSimBalance) {
-        setBalance(parseFloat(storedSimBalance));
-      } else {
-        setBalance(SIMULATION_STARTING_BALANCE);
-      }
-      setCurrency('USD');
-    }
-  }, [isSimulationMode]);
-
 
   // Subscribe to public ticks data as soon as connected
   useEffect(() => {
@@ -92,19 +75,19 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     }
   }, [isConnected, isLoggedIn, sendMessage]);
 
-  // Handle incoming WebSocket messages for REAL mode
+  // Handle incoming WebSocket messages
   useEffect(() => {
-    if (isSimulationMode) return;
-
     subscribe('authorize', (msg) => {
       const authMsg = msg as AuthorizeResponse;
-      setBalance(authMsg.authorize.balance);
-      setCurrency(authMsg.authorize.currency);
+      if (authMsg.authorize) {
+        setBalance(authMsg.authorize.balance);
+        setCurrency(authMsg.authorize.currency);
+      }
     });
     
     subscribe('balance', (msg) => {
         const balanceMsg = msg as BalanceResponse;
-        if (balanceMsg.balance.loginid === selectedAccount?.loginid) {
+        if (balanceMsg.balance && balanceMsg.balance.loginid === selectedAccount?.loginid) {
             setBalance(balanceMsg.balance.balance);
             setCurrency(balanceMsg.balance.currency);
         }
@@ -126,7 +109,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     
     subscribe('transaction', (msg) => {
         const transactionMsg = msg as TransactionResponse;
-        if (transactionMsg.transaction.action === 'sell') {
+        if (transactionMsg.transaction && transactionMsg.transaction.action === 'sell') {
              const contract = activeContracts.find(c => c.contract_id === transactionMsg.transaction.contract_id);
              if (contract) {
                 const profit = transactionMsg.transaction.amount - contract.buy_price;
@@ -139,61 +122,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
         }
     });
 
-  }, [subscribe, sendMessage, selectedAccount, activeContracts, symbol, isSimulationMode, isLoggedIn]);
-
-
-  // Handle incoming WebSocket messages for SIMULATION mode
-  useEffect(() => {
-    if (!isSimulationMode) return;
-
-    const handleTick = (msg: any) => {
-      const tickMsg = msg as TickResponse;
-      if (tickMsg.tick && tickMsg.tick.symbol === symbol) {
-        const newTick = tickMsg.tick;
-        setTicks(prev => [newTick, ...prev.slice(0, MAX_TICKS - 1)]);
-
-        // Settle simulated contracts
-        setSimulatedContracts(prevContracts => {
-          const stillOpen: SimulatedContract[] = [];
-          let totalPayout = 0;
-          let newTradeResult = null;
-
-          prevContracts.forEach(contract => {
-            if (newTick.epoch > contract.entry_tick_time) {
-              const exitDigit = getLastDigit(newTick.quote);
-              const isWin = (contract.contract_type === 'DIGITEVEN' && exitDigit % 2 === 0) ||
-                              (contract.contract_type === 'DIGITODD' && exitDigit % 2 !== 0);
-
-              const profit = isWin ? contract.payout - contract.buy_price : -contract.buy_price;
-              if(isWin) {
-                  totalPayout += contract.payout;
-              }
-              newTradeResult = { status: isWin ? 'won' : 'lost', profit };
-            } else {
-              stillOpen.push(contract);
-            }
-          });
-          
-          if(newTradeResult) {
-            setLastTradeResult(newTradeResult);
-          }
-
-          if (totalPayout > 0) {
-            setBalance(prev => {
-                const newBalance = prev + totalPayout;
-                localStorage.setItem('deriv_sim_balance', newBalance.toString());
-                return newBalance;
-            });
-          }
-          return stillOpen;
-        });
-      }
-    };
-    
-    subscribe('tick', handleTick);
-
-  }, [isSimulationMode, symbol, subscribe]);
-
+  }, [subscribe, sendMessage, selectedAccount, activeContracts, symbol]);
 
   useEffect(() => {
     const newAnalysis = analyzeDigits(ticks, strategy);
@@ -201,33 +130,6 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   }, [ticks, strategy]);
   
   const buyContract = useCallback((contractType: 'DIGITEVEN' | 'DIGITODD', stake: number) => {
-      if (isSimulationMode) {
-            const currentTick = ticks[0];
-            if (!currentTick) {
-                toast({ title: "Waiting for market data...", variant: "destructive" });
-                return;
-            }
-            const newBalance = balance - stake;
-            if (newBalance < 0) {
-                toast({ title: "Insufficient simulated funds", variant: "destructive" });
-                return;
-            }
-            setBalance(newBalance);
-            localStorage.setItem('deriv_sim_balance', newBalance.toString());
-
-            const newContract: SimulatedContract = {
-                contract_id: Date.now(),
-                buy_price: stake,
-                payout: stake * SIMULATED_PAYOUT_PERCENTAGE, // Payout is stake + profit
-                contract_type: contractType,
-                entry_tick_time: currentTick.epoch,
-                shortcode: `SIM_${contractType}_${symbol}_${stake.toFixed(2)}`,
-                status: 'open',
-            };
-            setSimulatedContracts(prev => [...prev, newContract]);
-            return;
-      }
-
       if (!isLoggedIn) {
           toast({ title: "Please log in to trade.", variant: "destructive" });
           return;
@@ -245,20 +147,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
               symbol: symbol,
           }
       });
-  }, [sendMessage, currency, symbol, isLoggedIn, isSimulationMode, balance, ticks, toast]);
-
-  const displayedContracts = isSimulationMode 
-    ? simulatedContracts.map(c => ({
-        ...c, 
-        profit: 0, // profit is unknown until settled
-        currency: 'USD',
-        is_valid_to_sell: 0,
-        is_settleable: 0,
-        is_expired: 0,
-        longcode: c.shortcode,
-    } as OpenContract)) 
-    : activeContracts;
-
+  }, [sendMessage, currency, symbol, isLoggedIn, toast]);
 
   const value = {
     isConnected,
@@ -272,7 +161,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     analysis,
     balance,
     currency,
-    activeContracts: displayedContracts,
+    activeContracts,
     buyContract,
     lastTradeResult,
   };

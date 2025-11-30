@@ -149,17 +149,6 @@ export interface OpenContract {
     validation_error?: string;
 }
 
-export interface SimulatedContract {
-    contract_id: number;
-    buy_price: number;
-    payout: number;
-    contract_type: 'DIGITEVEN' | 'DIGITODD';
-    entry_tick_time: number;
-    shortcode: string;
-    status: 'open';
-}
-
-
 export interface PortfolioResponse {
     portfolio: {
         contracts: OpenContract[];
