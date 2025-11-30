@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const AutomatedTradeSuggestionsInputSchema = z.object({
   evenOddPercentage: z
@@ -58,6 +59,7 @@ export async function automatedTradeSuggestions(
 
 const prompt = ai.definePrompt({
   name: 'automatedTradeSuggestionsPrompt',
+  model: googleAI('gemini-2.5-flash'),
   input: {schema: AutomatedTradeSuggestionsInputSchema},
   output: {schema: AutomatedTradeSuggestionsOutputSchema},
   prompt: `You are an expert trading advisor specializing in Even/Odd digit trading on the Deriv platform. Analyze the provided real-time market data and provide a trade suggestion, a confidence level, and a detailed reasoning.
