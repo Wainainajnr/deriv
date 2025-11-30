@@ -40,7 +40,7 @@ export default function LoginPage() {
             <Terminal className="h-4 w-4" />
             <AlertTitle>Important: Set Your Callback URL</AlertTitle>
             <AlertDescription>
-              To ensure login works, add the following URL to the authorized redirect URLs in your Deriv app settings: <br /> <code className="mt-2 block bg-black/30 p-2 rounded-md text-primary text-xs">{REDIRECT_URI}</code>
+              To enable login, add the following URL to the "Authorised redirect URLs" in your Deriv app settings: <br /> <code className="mt-2 block bg-black/30 p-2 rounded-md text-primary text-xs">{REDIRECT_URI}</code>
             </AlertDescription>
           </Alert>
         </CardFooter>

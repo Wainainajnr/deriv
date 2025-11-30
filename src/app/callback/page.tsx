@@ -20,15 +20,18 @@ export default function CallbackPage() {
           // The server will handle the redirect on success.
           // If there's an error, the server-side redirect will include an error query param.
           // We check the URL here to see if we were redirected back with an error.
-          const finalSearchParams = new URLSearchParams(window.location.search);
-          if (finalSearchParams.has('error')) {
-              router.replace(`/login?error=${finalSearchParams.get('error')}`);
-          } else if(res.redirected) {
+          if (res.ok && res.redirected) {
              // Successful login, the server is redirecting us to the home page.
              window.location.href = res.url;
           } else {
-            // Handle cases where the API call itself fails without a redirect
-             router.replace(`/login?error=callback_api_failed`);
+             // Handle cases where the API call itself fails or returns an error response
+             // We need to inspect the response to find the error and show it.
+             res.json().then(errData => {
+                 const error = errData.error || 'callback_api_failed';
+                 router.replace(`/login?error=${error}`);
+             }).catch(() => {
+                 router.replace(`/login?error=callback_api_failed`);
+             })
           }
         })
         .catch(err => {

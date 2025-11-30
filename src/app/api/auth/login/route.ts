@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       app_id: DERIV_APP_ID,
       l: "EN",
       state: state,
-      // This is the *client-side* callback, which will then call our *server-side* callback
+      // This is the *server-side* callback URL
       redirect_uri: REDIRECT_URI, 
       scope: 'read trade trading_information',
       response_type: 'code' // Use Authorization Code Flow
