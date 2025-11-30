@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { LoginButton } from "@/components/auth/LoginButton";
@@ -5,6 +6,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/icons/Logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
+import { REDIRECT_URI } from "@/config";
 
 export default function LoginPage() {
   const bgImage = PlaceHolderImages.find(img => img.id === 'login-background');
@@ -38,7 +40,7 @@ export default function LoginPage() {
             <Terminal className="h-4 w-4" />
             <AlertTitle>Important: Set Your Callback URL</AlertTitle>
             <AlertDescription>
-              To ensure login works, add `https://derivedge.vercel.app/callback` to the authorized redirect URLs in your Deriv app settings.
+              To ensure login works, add the following URL to the authorized redirect URLs in your Deriv app settings: <br /> <code className="mt-2 block bg-black/30 p-2 rounded-md text-primary text-xs">{REDIRECT_URI}</code>
             </AlertDescription>
           </Alert>
         </CardFooter>

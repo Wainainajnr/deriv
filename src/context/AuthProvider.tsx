@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import type { DerivAccount } from "@/types/deriv";
+import { DERIV_APP_ID, REDIRECT_URI } from "@/config";
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -23,13 +24,10 @@ interface AuthContextType {
   selectAccount: (loginid: string) => void;
   setTokenAndAccounts: (token: string, accounts: DerivAccount[]) => void;
   isSimulationMode: boolean;
-  toggleSimulationMode: (isSim: boolean) => void;
+  toggleSimulationMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const DERIV_APP_ID = "114068";
-const REDIRECT_URI = "https://derivedge.vercel.app/callback";
 const OAUTH_STATE_KEY = "deriv_oauth_state";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -65,10 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Failed to parse auth data from localStorage", error);
-      localStorage.removeItem("deriv_token");
-      localStorage.removeItem("deriv_accounts");
-      localStorage.removeItem("deriv_selected_account");
-      localStorage.removeItem("deriv_sim_mode");
+      localStorage.clear(); // Clear corrupted data
     } finally {
       setIsLoading(false);
     }
@@ -83,14 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 2. Store the state value in localStorage to verify it on callback.
     localStorage.setItem(OAUTH_STATE_KEY, state);
 
-    // 3. Construct the full, explicit OAuth URL for the implicit grant flow.
+    // 3. Construct the full, explicit OAuth URL.
     const params = new URLSearchParams({
       app_id: DERIV_APP_ID,
       l: "EN",
-      brand: "deriv",
-      redirect_uri: REDIRECT_URI,
-      scope: 'read trading information',
       state: state,
+      redirect_uri: REDIRECT_URI, // Use the configured redirect URI
+      scope: 'read trading information',
       response_type: 'token' // Explicitly request token for implicit grant flow
     });
     
@@ -119,9 +113,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("deriv_accounts", JSON.stringify(newAccounts));
     setToken(newToken);
     setAccounts(newAccounts);
-    toggleSimulationMode(false); // Turn off simulation mode on successful login
+    
+    // On successful login, always turn off simulation mode
+    localStorage.setItem("deriv_sim_mode", JSON.stringify(false));
+    setIsSimulationMode(false);
 
     if (newAccounts.length > 0) {
+      // Prioritize selecting a real account, otherwise the first one
       const realAccount = newAccounts.find(acc => !acc.is_virtual);
       const accountToSelect = realAccount || newAccounts[0];
       setSelectedAccount(accountToSelect);
@@ -131,33 +129,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const selectAccount = (loginid: string) => {
     const account = accounts.find((acc) => acc.loginid === loginid);
-    if (account) {
+    if (account && account.loginid !== selectedAccount?.loginid) {
       setSelectedAccount(account);
       localStorage.setItem("deriv_selected_account", JSON.stringify(account));
-      window.location.reload();
+      window.location.reload(); // Reload to apply the new account context fully
     }
   };
 
-  const toggleSimulationMode = useCallback((isSim: boolean) => {
-    const isActuallyChanging = isSim !== isSimulationMode;
-    if (!isActuallyChanging) return;
-
-    if (isSim) {
-      // Switching TO simulation mode
-      localStorage.setItem("deriv_sim_mode", JSON.stringify(true));
-      setIsSimulationMode(true);
-      window.location.reload();
-    } else {
-      // Switching OFF simulation mode
-      if (token) {
-        // If logged in, just switch and reload
-        localStorage.setItem("deriv_sim_mode", JSON.stringify(false));
-        setIsSimulationMode(false);
-        window.location.reload();
-      } else {
-        // If not logged in, trigger the login flow
+  const toggleSimulationMode = useCallback(() => {
+    const newSimMode = !isSimulationMode;
+    // If we're turning simulation OFF, and we're not logged in, trigger login
+    if (!newSimMode && !token) {
         login();
-      }
+    } else {
+        localStorage.setItem("deriv_sim_mode", JSON.stringify(newSimMode));
+        setIsSimulationMode(newSimMode);
+        window.location.reload();
     }
   }, [isSimulationMode, token]);
 

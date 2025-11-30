@@ -36,7 +36,6 @@ export default function CallbackPage() {
       }
 
       if (token && accountListStr) {
-        // The rest of the logic remains the same.
         const accounts: DerivAccount[] = accountListStr.split('+').map(accStr => {
             const [loginid, isVirtual, currency, accountType] = accStr.split(':');
             return {
