@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -14,6 +15,7 @@ export const useDerivWebSocket = () => {
     const { token, isLoggedIn } = useAuth();
     const { toast } = useToast();
     const messageCallbacks = useRef<Map<string, (msg: DerivMessage) => void>>(new Map());
+    const messageQueue = useRef<object[]>([]);
 
     const connect = useCallback(() => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
@@ -25,9 +27,18 @@ export const useDerivWebSocket = () => {
         ws.current.onopen = () => {
             console.log("WebSocket connected");
             setIsConnected(true);
+            
             // Authorize if logged in
             if (token && isLoggedIn) {
                 ws.current?.send(JSON.stringify({ authorize: token }));
+            }
+            
+            // Send any queued messages
+            while(messageQueue.current.length > 0) {
+                const message = messageQueue.current.shift();
+                if (message) {
+                    ws.current?.send(JSON.stringify(message));
+                }
             }
         };
 
@@ -95,8 +106,8 @@ export const useDerivWebSocket = () => {
         if (ws.current?.readyState === WebSocket.OPEN) {
             ws.current.send(JSON.stringify(message));
         } else {
-            console.log("WebSocket is not connected. Message will be sent upon reconnection.");
-            // You could queue the message here to be sent on 'open' event
+            console.log("WebSocket is not connected. Message queued.");
+            messageQueue.current.push(message);
         }
     }, []);
 
