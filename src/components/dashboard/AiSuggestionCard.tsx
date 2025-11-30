@@ -33,12 +33,13 @@ export function AiSuggestionCard() {
         }
     }
 
-    // Resume the context if it's suspended
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
+    const audioContext = audioContextRef.current;
+    
+    // Resume the context if it's suspended (common in modern browsers)
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
     }
     
-    const audioContext = audioContextRef.current;
     if (!audioContext || audioContext.state !== 'running') {
       console.warn("AudioContext is not available or not running. Cannot play sound.");
       return;
@@ -175,7 +176,8 @@ export function AiSuggestionCard() {
         return (
             <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[150px]">
                 <p className="text-muted-foreground">Strategy 2 uses explicit entry rules based on the conditions below.</p>
-                {analysis.entryCondition === 'NO ENTRY' && <p className="text-muted-foreground">Waiting for signal...</p>}
+                {analysis.entryCondition === 'NO ENTRY' && analysis.lastDigit !== null && <p className="text-muted-foreground">Waiting for signal...</p>}
+                {analysis.lastDigit === null && <p className="text-muted-foreground">Waiting for market data...</p>}
             </div>
         )
      }

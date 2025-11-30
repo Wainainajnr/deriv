@@ -1,3 +1,4 @@
+
 import type { TickResponse } from "@/types/deriv";
 
 export interface DigitAnalysis {
@@ -48,7 +49,7 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
     odd: oddWinRate,
   };
   
-  const patternHistory = digits.slice(0, 20).map(d => (d % 2 === 0 ? 'E' : 'O')).join(' ');
+  const patternHistory = digits.slice(0, 50).map(d => (d % 2 === 0 ? 'E' : 'O')).join(' ');
   
   const analysisTicks = digits.slice(0, 30);
   let patternDominance = 'None';

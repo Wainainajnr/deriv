@@ -1,3 +1,4 @@
+
 export interface DerivAccount {
   account_category: 'real' | 'demo';
   account_type: string;
@@ -63,7 +64,7 @@ export interface TickResponse {
     },
     echo_req: Record<string, any>;
     msg_type: 'tick';
-    subscription: {
+    subscription?: {
         id: string;
     }
 }

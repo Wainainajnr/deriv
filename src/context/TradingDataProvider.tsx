@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
@@ -91,51 +92,9 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     }
   }, [isConnected, isLoggedIn, sendMessage]);
 
-  // Handle incoming WebSocket messages
+  // Handle incoming WebSocket messages for REAL mode
   useEffect(() => {
-    if (isSimulationMode) {
-      const handleTick = (msg: any) => {
-        const tickMsg = msg as TickResponse;
-        if (tickMsg.tick && tickMsg.tick.symbol === symbol) {
-          const newTick = tickMsg.tick;
-          setTicks(prev => [newTick, ...prev.slice(0, MAX_TICKS - 1)]);
-
-          // Settle simulated contracts
-          setSimulatedContracts(prevContracts => {
-            const stillOpen: SimulatedContract[] = [];
-            let totalPayout = 0;
-
-            prevContracts.forEach(contract => {
-              if (newTick.epoch > contract.entry_tick_time) {
-                const exitDigit = getLastDigit(newTick.quote);
-                const isWin = (contract.contract_type === 'DIGITEVEN' && exitDigit % 2 === 0) ||
-                                (contract.contract_type === 'DIGITODD' && exitDigit % 2 !== 0);
-
-                const profit = isWin ? contract.payout - contract.buy_price : -contract.buy_price;
-                if(isWin) {
-                    totalPayout += contract.payout;
-                }
-                setLastTradeResult({ status: isWin ? 'won' : 'lost', profit });
-              } else {
-                stillOpen.push(contract);
-              }
-            });
-
-            if (totalPayout > 0) {
-              setBalance(prev => {
-                  const newBalance = prev + totalPayout;
-                  localStorage.setItem('deriv_sim_balance', newBalance.toString());
-                  return newBalance;
-              });
-            }
-            return stillOpen;
-          });
-        }
-      };
-      subscribe('tick', handleTick);
-      return; // Don't set up real-money listeners
-    }
-
+    if (isSimulationMode) return;
 
     subscribe('authorize', (msg) => {
       const authMsg = msg as AuthorizeResponse;
@@ -180,7 +139,61 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
         }
     });
 
-  }, [subscribe, sendMessage, selectedAccount, activeContracts, symbol, isSimulationMode]);
+  }, [subscribe, sendMessage, selectedAccount, activeContracts, symbol, isSimulationMode, isLoggedIn]);
+
+
+  // Handle incoming WebSocket messages for SIMULATION mode
+  useEffect(() => {
+    if (!isSimulationMode) return;
+
+    const handleTick = (msg: any) => {
+      const tickMsg = msg as TickResponse;
+      if (tickMsg.tick && tickMsg.tick.symbol === symbol) {
+        const newTick = tickMsg.tick;
+        setTicks(prev => [newTick, ...prev.slice(0, MAX_TICKS - 1)]);
+
+        // Settle simulated contracts
+        setSimulatedContracts(prevContracts => {
+          const stillOpen: SimulatedContract[] = [];
+          let totalPayout = 0;
+          let newTradeResult = null;
+
+          prevContracts.forEach(contract => {
+            if (newTick.epoch > contract.entry_tick_time) {
+              const exitDigit = getLastDigit(newTick.quote);
+              const isWin = (contract.contract_type === 'DIGITEVEN' && exitDigit % 2 === 0) ||
+                              (contract.contract_type === 'DIGITODD' && exitDigit % 2 !== 0);
+
+              const profit = isWin ? contract.payout - contract.buy_price : -contract.buy_price;
+              if(isWin) {
+                  totalPayout += contract.payout;
+              }
+              newTradeResult = { status: isWin ? 'won' : 'lost', profit };
+            } else {
+              stillOpen.push(contract);
+            }
+          });
+          
+          if(newTradeResult) {
+            setLastTradeResult(newTradeResult);
+          }
+
+          if (totalPayout > 0) {
+            setBalance(prev => {
+                const newBalance = prev + totalPayout;
+                localStorage.setItem('deriv_sim_balance', newBalance.toString());
+                return newBalance;
+            });
+          }
+          return stillOpen;
+        });
+      }
+    };
+    
+    subscribe('tick', handleTick);
+
+  }, [isSimulationMode, symbol, subscribe]);
+
 
   useEffect(() => {
     const newAnalysis = analyzeDigits(ticks, strategy);
@@ -205,7 +218,7 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
             const newContract: SimulatedContract = {
                 contract_id: Date.now(),
                 buy_price: stake,
-                payout: stake * (1 + SIMULATED_PAYOUT_PERCENTAGE),
+                payout: stake * SIMULATED_PAYOUT_PERCENTAGE, // Payout is stake + profit
                 contract_type: contractType,
                 entry_tick_time: currentTick.epoch,
                 shortcode: `SIM_${contractType}_${symbol}_${stake.toFixed(2)}`,
@@ -274,5 +287,3 @@ export const useTradingData = () => {
   }
   return context;
 };
-
-    
