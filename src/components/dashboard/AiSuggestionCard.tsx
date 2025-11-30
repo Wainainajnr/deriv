@@ -23,22 +23,7 @@ export function AiSuggestionCard() {
   const prevSignalState = useRef(false);
   
   const playSound = () => {
-    // Defer AudioContext creation until the first user gesture (sound playback).
-    if (!audioContextRef.current) {
-        try {
-          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-        } catch (e) {
-          console.error("Web Audio API is not supported in this browser.", e);
-          return;
-        }
-    }
-
     const audioContext = audioContextRef.current;
-    
-    // Resume the context if it's suspended (common in modern browsers)
-    if (audioContext.state === 'suspended') {
-      audioContext.resume();
-    }
     
     if (!audioContext || audioContext.state !== 'running') {
       console.warn("AudioContext is not available or not running. Cannot play sound.");
@@ -63,6 +48,19 @@ export function AiSuggestionCard() {
       console.error("Could not play sound:", e);
     }
   };
+
+  const createAudioContext = () => {
+     if (!audioContextRef.current) {
+        try {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        } catch (e) {
+          console.error("Web Audio API is not supported in this browser.", e);
+        }
+    }
+    if (audioContextRef.current?.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+  }
 
   useEffect(() => {
     if (strategy === 'strategy2') {
@@ -104,6 +102,8 @@ export function AiSuggestionCard() {
   }, [isTradeSignalActive]);
   
   const handleTrade = () => {
+    createAudioContext();
+
     if (!isLoggedIn) {
         toast({
             title: "Please Log In",

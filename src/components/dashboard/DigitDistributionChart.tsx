@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
@@ -31,18 +32,16 @@ export function DigitDistributionChart() {
       <CardContent>
         <div className="h-[200px] w-full">
           <ChartContainer config={chartConfig} className="w-full h-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
-                <XAxis dataKey="digit" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip
-                  cursor={{ fill: 'hsl(var(--card))' }}
-                  content={<ChartTooltipContent />}
-                />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
+              <XAxis dataKey="digit" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--card))' }}
+                content={<ChartTooltipContent />}
+              />
+              <Bar dataKey="count" radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ChartContainer>
         </div>
       </CardContent>
