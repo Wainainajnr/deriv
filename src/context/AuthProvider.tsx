@@ -11,7 +11,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import type { DerivAccount } from "@/types/deriv";
-import { DERIV_APP_ID, REDIRECT_URI } from "@/config";
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -28,7 +27,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const OAUTH_STATE_KEY = "deriv_oauth_state";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
@@ -37,16 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSimulationMode, setIsSimulationMode] = useState(true);
   const router = useRouter();
-  
-  // State to manage the OAuth redirect URL
-  const [oauthUrl, setOauthUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    // This effect triggers the redirect once the oauthUrl state is set.
-    if (oauthUrl) {
-      window.location.href = oauthUrl;
-    }
-  }, [oauthUrl]);
 
   useEffect(() => {
     try {
@@ -80,27 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = () => {
-    const state =
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15);
-    
-    try {
-        sessionStorage.setItem(OAUTH_STATE_KEY, state);
-    } catch (e) {
-        console.error("Could not save state to sessionStorage", e);
-        return;
-    }
-
-    const params = new URLSearchParams({
-      app_id: DERIV_APP_ID,
-      l: "EN",
-      state: state,
-      redirect_uri: REDIRECT_URI,
-      scope: 'read trade trading_information',
-      response_type: 'token'
-    });
-    
-    setOauthUrl(`https://oauth.deriv.com/oauth2/authorize?${params.toString()}`);
+    // Redirect to our server-side login route handler
+    window.location.href = '/api/auth/login';
   };
   
   const logout = useCallback(() => {
@@ -108,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("deriv_token");
     localStorage.removeItem("deriv_accounts");
     localStorage.removeItem("deriv_selected_account");
-    sessionStorage.removeItem(OAUTH_STATE_KEY);
     setToken(null);
     setAccounts([]);
     setSelectedAccount(null);
@@ -151,10 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
         localStorage.setItem("deriv_sim_mode", JSON.stringify(newSimMode));
         setIsSimulationMode(newSimMode);
-        // Do not reload here to avoid interrupting the OAuth flow.
-        if (newSimMode || token) {
-            window.location.reload();
-        }
+        window.location.reload();
     }
   }, [isSimulationMode, token]);
 
