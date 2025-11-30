@@ -15,6 +15,7 @@ export default function CallbackPage() {
 
   useEffect(() => {
     try {
+      // Deriv's implicit flow returns params in the hash, not the search query.
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       const token = params.get("token");
@@ -27,7 +28,7 @@ export default function CallbackPage() {
       // 2. Immediately remove the state from storage to prevent reuse.
       sessionStorage.removeItem(OAUTH_STATE_KEY);
 
-      // 3. Verify that the received state matches the saved state.
+      // 3. CRITICAL: Verify that the received state matches the saved state.
       if (!state || state !== savedState) {
           console.error("OAuth state mismatch. Possible CSRF attack.");
           // Redirect to login with a specific error message.
@@ -36,23 +37,26 @@ export default function CallbackPage() {
       }
 
       if (token && accountListStr) {
+        // The account list is a string like "CR123:real:USD+VRTC456:demo:USD"
         const accounts: DerivAccount[] = accountListStr.split('+').map(accStr => {
-            const [loginid, isVirtual, currency, accountType] = accStr.split(':');
+            const [loginid, accountType, currency] = accStr.split(':');
+            const isVirtual = accountType === 'demo' ? 1 : 0;
             return {
                 loginid,
-                is_virtual: parseInt(isVirtual, 10) as 0 | 1,
+                is_virtual: isVirtual,
                 currency,
                 account_type: accountType,
-                account_category: parseInt(isVirtual, 10) ? 'demo' : 'real',
+                account_category: isVirtual ? 'demo' : 'real',
                 is_disabled: 0,
                 created_at: 0,
-                landing_company_name: ''
+                landing_company_name: '' // This info is not in the callback
             };
         });
         
+        // Add landing_company_name for consistency with the DerivAccount type
         const fullAccounts = accounts.map(acc => ({
             ...acc,
-            landing_company_name: acc.is_virtual ? 'virtual' : 'svg'
+            landing_company_name: acc.is_virtual ? 'virtual' : 'svg' // Common values
         }));
 
         setTokenAndAccounts(token, fullAccounts);
