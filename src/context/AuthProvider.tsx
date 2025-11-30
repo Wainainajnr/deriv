@@ -37,6 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSimulationMode, setIsSimulationMode] = useState(true);
   const router = useRouter();
+  
+  // State to manage the OAuth redirect URL
+  const [oauthUrl, setOauthUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This effect triggers the redirect once the oauthUrl state is set.
+    // This solves the race condition by ensuring React state is updated before redirecting.
+    if (oauthUrl) {
+      window.location.href = oauthUrl;
+    }
+  }, [oauthUrl]);
 
   useEffect(() => {
     try {
@@ -92,8 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       response_type: 'token'
     });
     
-    const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
-    window.location.href = oauthUrl;
+    // Set the URL in state, letting the useEffect hook handle the redirect.
+    setOauthUrl(`https://oauth.deriv.com/oauth2/authorize?${params.toString()}`);
   };
   
   const logout = useCallback(() => {
@@ -146,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsSimulationMode(newSimMode);
         window.location.reload();
     }
-  }, [isSimulationMode, token, login]);
+  }, [isSimulationMode, token]);
 
 
   const value = {
