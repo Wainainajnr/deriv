@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/context/AuthProvider";
@@ -21,16 +22,12 @@ export function Header() {
   const { accounts, selectedAccount, logout, selectAccount, isLoggedIn, login, isSimulationMode, toggleSimulationMode } = useAuth();
   const { balance, currency } = useTradingData();
 
-  const handleSimModeChange = () => {
-    toggleSimulationMode();
-  };
-
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-xl md:px-6">
       <Logo />
       <div className="ml-auto flex items-center gap-4">
         <div className="flex items-center space-x-2">
-            <Switch id="simulation-mode" checked={isSimulationMode} onCheckedChange={handleSimModeChange} />
+            <Switch id="simulation-mode" checked={isSimulationMode} onCheckedChange={toggleSimulationMode} />
             <Label htmlFor="simulation-mode">Simulation</Label>
         </div>
 

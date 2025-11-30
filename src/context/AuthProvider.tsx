@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -22,7 +23,8 @@ interface AuthContextType {
   selectAccount: (loginid: string) => void;
   setTokenAndAccounts: (token: string, accounts: DerivAccount[]) => void;
   isSimulationMode: boolean;
-  toggleSimulationMode: () => void;
+  toggleSimulationMode: (isSim: boolean) => void;
+  loginAndDisableSim: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -74,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = () => {
-    // Generate a random string for the state parameter for CSRF protection
+    // Generate a secure random string for the state parameter for CSRF protection
     const state =
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
@@ -93,6 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
     window.location.href = oauthUrl;
   };
+  
+  const loginAndDisableSim = () => {
+    toggleSimulationMode(false);
+    login();
+  }
 
   const logout = useCallback(() => {
     setIsLoading(true);
@@ -132,14 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const toggleSimulationMode = useCallback(() => {
-    const newState = !isSimulationMode;
-    localStorage.setItem("deriv_sim_mode", JSON.stringify(newState));
-    setIsSimulationMode(newState);
-    if (token) {
-        window.location.reload();
-    }
-  }, [isSimulationMode, token]);
+  const toggleSimulationMode = useCallback((isSim: boolean) => {
+    localStorage.setItem("deriv_sim_mode", JSON.stringify(isSim));
+    setIsSimulationMode(isSim);
+  }, []);
 
 
   const value = {
@@ -148,12 +151,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token,
     accounts,
     selectedAccount,
-    login,
+    login: loginAndDisableSim,
     logout,
     selectAccount,
     setTokenAndAccounts,
     isSimulationMode,
-    toggleSimulationMode,
+    toggleSimulationMode: (isSim: boolean) => {
+        toggleSimulationMode(isSim);
+        window.location.reload();
+    },
+    loginAndDisableSim,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
