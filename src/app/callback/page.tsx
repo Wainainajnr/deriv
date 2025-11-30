@@ -21,11 +21,11 @@ export default function CallbackPage() {
       const accountListStr = params.get("loginid_list");
       const state = params.get("state");
 
-      // 1. Retrieve the saved state from localStorage.
-      const savedState = localStorage.getItem(OAUTH_STATE_KEY);
+      // 1. Retrieve the saved state from sessionStorage.
+      const savedState = sessionStorage.getItem(OAUTH_STATE_KEY);
       
       // 2. Immediately remove the state from storage to prevent reuse.
-      localStorage.removeItem(OAUTH_STATE_KEY);
+      sessionStorage.removeItem(OAUTH_STATE_KEY);
 
       // 3. Verify that the received state matches the saved state.
       if (!state || state !== savedState) {

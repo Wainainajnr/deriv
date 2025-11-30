@@ -11,21 +11,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogOut, CircleUserRound, Link } from "lucide-react";
+import { ChevronDown, LogOut, CircleUserRound, Link, Moon, Sun } from "lucide-react";
 import { useTradingData } from "@/context/TradingDataProvider";
 import { Logo } from "../icons/Logo";
 import Image from "next/image";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
+import { useTheme } from "next-themes";
 
 export function Header() {
   const { accounts, selectedAccount, logout, selectAccount, isLoggedIn, login, isSimulationMode, toggleSimulationMode } = useAuth();
   const { balance, currency } = useTradingData();
+  const { setTheme, theme } = useTheme();
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-xl md:px-6">
       <Logo />
       <div className="ml-auto flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+        >
+          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+
         <div className="flex items-center space-x-2">
             <Switch id="simulation-mode" checked={isSimulationMode} onCheckedChange={toggleSimulationMode} />
             <Label htmlFor="simulation-mode">Simulation</Label>

@@ -75,9 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Math.random().toString(36).substring(2, 15);
     
     try {
-        localStorage.setItem(OAUTH_STATE_KEY, state);
+        // Use sessionStorage as it's tied to the tab session and more reliable for OAuth redirects.
+        sessionStorage.setItem(OAUTH_STATE_KEY, state);
     } catch (e) {
-        console.error("Could not save state to localStorage", e);
+        console.error("Could not save state to sessionStorage", e);
+        // Optionally, show an error to the user
         return;
     }
 
@@ -99,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("deriv_token");
     localStorage.removeItem("deriv_accounts");
     localStorage.removeItem("deriv_selected_account");
-    localStorage.removeItem(OAUTH_STATE_KEY);
+    sessionStorage.removeItem(OAUTH_STATE_KEY);
     setToken(null);
     setAccounts([]);
     setSelectedAccount(null);
@@ -144,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsSimulationMode(newSimMode);
         window.location.reload();
     }
-  }, [isSimulationMode, token]);
+  }, [isSimulationMode, token, login]);
 
 
   const value = {
