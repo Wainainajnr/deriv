@@ -99,18 +99,30 @@ export function AiSuggestionCard() {
         return;
     }
     
+    let contractType: 'DIGITEVEN' | 'DIGITODD' | null = null;
+    
     if (strategy === 'strategy1') {
         if (suggestion && suggestion.tradeSuggestion === 'ENTER EVEN NOW') {
-            buyContract('DIGITEVEN', parseFloat(stake)); 
+            contractType = 'DIGITEVEN';
         } else if (suggestion && suggestion.tradeSuggestion === 'ENTER ODD NOW') {
-            buyContract('DIGITODD', parseFloat(stake));
+            contractType = 'DIGITODD';
         }
     } else if (strategy === 'strategy2') {
         if (analysis.entryCondition === 'ENTER EVEN NOW') {
-            buyContract('DIGITEVEN', parseFloat(stake)); 
+            contractType = 'DIGITEVEN';
         } else if (analysis.entryCondition === 'ENTER ODD NOW') {
-            buyContract('DIGITODD', parseFloat(stake));
+            contractType = 'DIGITODD';
         }
+    }
+
+    if (contractType) {
+        buyContract(contractType, parseFloat(stake));
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Trade Error",
+            description: "No valid trade signal to execute.",
+        });
     }
   }
 
@@ -195,10 +207,10 @@ export function AiSuggestionCard() {
         <Button 
             onClick={handleTrade}
             disabled={!isTradeSignalActive}
-            className={`w-full mt-4 font-bold transition-all ${
+            className={`w-full mt-4 font-bold transition-all text-white ${
                 isTradeSignalActive 
-                    ? 'bg-green-600 hover:bg-green-700 text-white animate-pulse' 
-                    : 'bg-gray-500/20 text-muted-foreground cursor-not-allowed'
+                    ? 'bg-green-600 hover:bg-green-700 animate-pulse' 
+                    : 'bg-gray-500/20 text-muted-foreground cursor-not-allowed hover:bg-gray-500/20'
             }`}
             size="lg"
         >
