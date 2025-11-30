@@ -10,7 +10,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const AutomatedTradeSuggestionsInputSchema = z.object({
   evenOddPercentage: z
@@ -81,7 +80,7 @@ const automatedTradeSuggestionsFlow = ai.defineFlow(
     outputSchema: AutomatedTradeSuggestionsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input, { model: 'gemini-2.5-flash' });
+    const {output} = await prompt(input, { model: 'gemini-1.5-flash' });
     return output!;
   }
 );

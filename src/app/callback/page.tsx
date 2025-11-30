@@ -1,50 +1,83 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { getCookie, setCookie, deleteCookie } from 'cookies-next';
+
+const OAUTH_STATE_COOKIE_NAME = "deriv_oauth_state";
+const OAUTH_TOKEN_COOKIE_NAME = "deriv_oauth_token";
+const ACCOUNTS_COOKIE_NAME = "deriv_accounts";
+const SELECTED_ACCOUNT_COOKIE_NAME = "deriv_selected_account";
 
 export default function CallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
+    try {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        
+        const token = params.get("token");
+        const loginid_list = params.get("loginid_list");
+        const state = params.get("state");
+        const error = params.get("error");
+        
+        if (error) {
+            console.error("OAuth callback error:", error);
+            router.replace(`/login?error=${error}`);
+            return;
+        }
+        
+        const savedState = getCookie(OAUTH_STATE_COOKIE_NAME);
+        deleteCookie(OAUTH_STATE_COOKIE_NAME); // Clean up state cookie
 
-    if (code && state) {
-      // Forward the auth code to our server-side API route.
-      // The server will validate the state, exchange the code for a token, and set secure cookies.
-      fetch(`/api/auth/callback?code=${code}&state=${state}`)
-        .then((res) => {
-          // The server will handle the redirect on success.
-          // If there's an error, the server-side redirect will include an error query param.
-          // We check the URL here to see if we were redirected back with an error.
-          if (res.ok && res.redirected) {
-             // Successful login, the server is redirecting us to the home page.
-             window.location.href = res.url;
-          } else {
-             // Handle cases where the API call itself fails or returns an error response
-             // We need to inspect the response to find the error and show it.
-             res.json().then(errData => {
-                 const error = errData.error || 'callback_api_failed';
-                 router.replace(`/login?error=${error}`);
-             }).catch(() => {
-                 router.replace(`/login?error=callback_api_failed`);
-             })
-          }
-        })
-        .catch(err => {
-            console.error("Error calling callback API:", err);
-            router.replace("/login?error=callback_api_failed");
+        if (!state || !savedState || state !== savedState) {
+            console.error("OAuth state mismatch. Possible CSRF attack.");
+            router.replace('/login?error=state_mismatch');
+            return;
+        }
+
+        if (!token || !loginid_list) {
+            console.error("Token or account list missing from callback.");
+            router.replace('/login?error=auth_failed');
+            return;
+        }
+
+        const accounts = loginid_list.split('+').map(accStr => {
+            const [loginid, account_type, currency] = accStr.split(':');
+            return {
+                loginid,
+                account_category: account_type === 'real' ? 'real' : 'demo',
+                is_virtual: account_type === 'demo' ? 1 : 0,
+                currency,
+            };
         });
-    } else {
-        // Handle cases where there's no code or state in the initial URL
-        const error = searchParams.get('error');
-        console.error("OAuth callback error:", error || "No code or state found");
-        router.replace(`/login?error=${error || 'auth_failed'}`);
+
+        const cookieOptions = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV !== 'development',
+            maxAge: 60 * 60 * 24 * 7, // 1 week
+            path: '/',
+            sameSite: 'lax',
+        } as const;
+
+        setCookie(OAUTH_TOKEN_COOKIE_NAME, token, cookieOptions);
+        setCookie(ACCOUNTS_COOKIE_NAME, JSON.stringify(accounts), cookieOptions);
+
+        const accountToSelect = accounts.find(acc => !acc.is_virtual) || accounts.find(acc => acc.is_virtual) || accounts[0];
+        if (accountToSelect) {
+            setCookie(SELECTED_ACCOUNT_COOKIE_NAME, JSON.stringify(accountToSelect), cookieOptions);
+        }
+
+        router.replace("/");
+
+    } catch (e) {
+        console.error("Error processing OAuth callback:", e);
+        router.replace('/login?error=callback_processing_failed');
     }
-  }, [router, searchParams]);
+
+  }, [router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">

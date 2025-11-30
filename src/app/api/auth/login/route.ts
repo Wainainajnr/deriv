@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
 
-    // Store state in a secure, httpOnly cookie
+    // Store state in a client-accessible cookie for validation on the callback page
     cookies().set(OAUTH_STATE_COOKIE_NAME, state, {
-      httpOnly: true,
+      httpOnly: false, // Must be readable by client-side JS on the callback page
       secure: process.env.NODE_ENV !== 'development',
       maxAge: 60 * 15, // 15 minutes
       path: '/',
@@ -24,10 +24,9 @@ export async function GET(req: NextRequest) {
       app_id: DERIV_APP_ID,
       l: "EN",
       state: state,
-      // This is the *server-side* callback URL
       redirect_uri: REDIRECT_URI, 
       scope: 'read trade trading_information',
-      response_type: 'code' // Use Authorization Code Flow
+      response_type: 'token' // Use Implicit Flow
     });
 
     const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;

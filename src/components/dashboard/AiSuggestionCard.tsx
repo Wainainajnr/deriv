@@ -23,27 +23,25 @@ export function AiSuggestionCard() {
   const prevSignalState = useRef(false);
   
   const playSound = () => {
-    const audioContext = audioContextRef.current;
-    
-    if (!audioContext || audioContext.state !== 'running') {
+    if (!audioContextRef.current || audioContextRef.current.state !== 'running') {
       console.warn("AudioContext is not available or not running. Cannot play sound.");
       return;
     }
     
     try {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      const oscillator = audioContextRef.current.createOscillator();
+      const gainNode = audioContextRef.current.createGain();
 
       oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      gainNode.connect(audioContextRef.current.destination);
 
       oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A6 note
-      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(880, audioContextRef.current.currentTime); // A6 note
+      gainNode.gain.setValueAtTime(0.5, audioContextRef.current.currentTime);
 
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContextRef.current.currentTime + 0.5);
+      oscillator.start(audioContextRef.current.currentTime);
+      oscillator.stop(audioContextRef.current.currentTime + 0.5);
     } catch (e) {
       console.error("Could not play sound:", e);
     }
