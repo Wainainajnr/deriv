@@ -30,7 +30,7 @@ const allVolatilityIndices = [
   { value: "1HZ100V", label: "Volatility 100 (1s) Index" },
 ];
 
-const strategy2Indices = ["1HZ10V", "1HZ25V", "1HZ50V"];
+const strategy2Indices = ["1HZ10V", "1HZ25V", "R_50"];
 
 export function ControlPanel() {
   const { symbol, setSymbol, strategy, setStrategy, stake, setStake, currency } = useTradingData();

@@ -114,14 +114,13 @@ export function analyzeDigits(ticks: TickResponse['tick'][], strategy: Strategy)
     const last20patterns = digits.slice(0, 20);
     const oddDominatingLast20 = last20patterns.filter(d => d % 2 !== 0).length > last20patterns.filter(d => d % 2 === 0).length;
 
-    // Entry point rule: Wait for 3+ 'E', then enter on first 'O'
-    const last4ticks = digits.slice(0, 4);
+    // Entry point rule: Wait for 2+ 'E', then enter on first 'O'
+    const last3ticks = digits.slice(0, 3);
     const isEntryPointTriggered = 
-        last4ticks.length === 4 &&
-        last4ticks[0] % 2 !== 0 && // current is ODD
-        last4ticks[1] % 2 === 0 && // previous 3 were EVEN
-        last4ticks[2] % 2 === 0 &&
-        last4ticks[3] % 2 === 0;
+        last3ticks.length === 3 &&
+        last3ticks[0] % 2 !== 0 && // current is ODD
+        last3ticks[1] % 2 === 0 && // previous 2 were EVEN
+        last3ticks[2] % 2 === 0;
 
     if (
         oddWinRate >= 70 &&

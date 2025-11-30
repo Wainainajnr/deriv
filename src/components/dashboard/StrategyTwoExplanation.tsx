@@ -82,7 +82,7 @@ export function StrategyTwoExplanation() {
              <CardContent className="space-y-4">
                 <p className="text-muted-foreground">When all strategy conditions are met, the entry signal appears.</p>
                 <div className="font-code text-center p-4 bg-black/30 rounded-md text-lg">
-                    Wait for: <span className="text-primary">E</span> <span className="text-primary">E</span> <span className="text-primary">E</span> ... then ENTER after first <span className="text-accent">O</span>
+                    Wait for: <span className="text-primary">E</span> <span className="text-primary">E</span> ... then ENTER after first <span className="text-accent">O</span>
                 </div>
                  {analysis.entryCondition === 'ENTER ODD NOW' && (
                     <div className="p-4 bg-accent/20 text-accent rounded-md text-center font-bold text-xl animate-pulse">
