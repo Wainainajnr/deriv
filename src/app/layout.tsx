@@ -30,10 +30,7 @@ export default function RootLayout({
         <AuthProvider>
           <ClientOnly>
             <TradingDataProvider>
-              <div className="flex min-h-screen w-full flex-col">
-                <Header />
-                <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
-              </div>
+                {children}
             </TradingDataProvider>
           </ClientOnly>
         </AuthProvider>

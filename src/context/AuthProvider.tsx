@@ -88,8 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setAccounts([]);
     setSelectedAccount(null);
-    // When logging out, we can decide whether to enable simulation mode or not.
-    // Let's enable it by default.
     localStorage.setItem("deriv_sim_mode", JSON.stringify(true));
     setIsSimulationMode(true);
     setIsLoading(false);
