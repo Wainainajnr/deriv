@@ -1,25 +1,26 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 export default function CallbackPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // The OAuth provider redirects here, but the token is in the hash.
-    // We can't access the hash on the server, so the client must send it.
-    if (window.location.hash) {
-      // Forward the hash to our server-side callback handler.
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+
+    if (code && state) {
+      // Forward the search params to our server-side callback handler.
       // The server will validate the state and set cookies.
-      fetch(`/api/auth/callback${window.location.hash.replace("#", "?")}`)
+      fetch(`/api/auth/callback?code=${code}&state=${state}`)
         .then((res) => {
           if (res.ok) {
             // If the server successfully processed the token, redirect to home.
-            router.replace("/");
+             window.location.href = "/";
           } else {
-            // If the server found an error (e.g., state mismatch), redirect to login with an error.
             res.json().then(body => {
               console.error("OAuth callback error:", body.error);
               router.replace(`/login?error=${body.error || 'auth_failed'}`);
@@ -31,11 +32,11 @@ export default function CallbackPage() {
             router.replace("/login?error=callback_api_failed");
         });
     } else {
-        // Handle cases where there's no hash
-        console.error("No hash found in callback URL");
+        // Handle cases where there's no code or state
+        console.error("No code or state found in callback URL");
         router.replace("/login?error=no_token");
     }
-  }, [router]);
+  }, [router, searchParams]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">

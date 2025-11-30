@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       // This is the *client-side* callback, which will then call our *server-side* callback
       redirect_uri: REDIRECT_URI, 
       scope: 'read trade trading_information',
-      response_type: 'token'
+      response_type: 'code' // Use Authorization Code Flow
     });
 
     const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;

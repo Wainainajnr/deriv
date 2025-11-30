@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import type { DerivAccount } from '@/types/deriv';
+import { DERIV_APP_ID } from '@/config';
 
 const OAUTH_STATE_COOKIE_NAME = "deriv_oauth_state";
 const OAUTH_TOKEN_COOKIE_NAME = "deriv_oauth_token";
@@ -11,8 +12,7 @@ const SIM_MODE_COOKIE_NAME = "deriv_sim_mode";
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
-  const token = searchParams.get("access_token");
-  const accountListStr = searchParams.get("loginid_list");
+  const code = searchParams.get("code");
   const state = searchParams.get("state");
 
   const cookieStore = cookies();
@@ -21,37 +21,59 @@ export async function GET(req: NextRequest) {
   // 1. CRITICAL: Validate State
   if (!state || !savedState || state !== savedState) {
     console.error("OAuth state mismatch. Possible CSRF attack.", { urlState: state, cookieState: savedState });
-    // Clear the invalid state cookie
     cookieStore.delete(OAUTH_STATE_COOKIE_NAME);
-    // Return an error response that the client can handle
     return NextResponse.json({ error: "state_mismatch" }, { status: 400 });
   }
 
-  // State is valid, clear it immediately to prevent reuse
   cookieStore.delete(OAUTH_STATE_COOKIE_NAME);
 
-  if (!token || !accountListStr) {
-      console.error("Token or account list missing from callback");
+  if (!code) {
+      console.error("Authorization code missing from callback");
       return NextResponse.json({ error: "auth_failed" }, { status: 400 });
   }
 
   try {
-    const accounts: DerivAccount[] = accountListStr.split('+').map(accStr => {
-        const [loginid, accountType, currency] = accStr.split(':');
-        const isVirtual = accountType === 'demo' ? 1 : 0;
-        return {
-            loginid,
-            is_virtual: isVirtual,
-            currency,
-            account_type: accountType,
-            account_category: isVirtual ? 'demo' : 'real',
-            is_disabled: 0,
-            created_at: 0,
-            landing_company_name: '' // This info is not in the callback, will be populated later
-        };
+    // 2. Exchange authorization code for access token
+    const tokenResponse = await fetch('https://oauth.deriv.com/oauth2/token', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: code,
+            client_id: DERIV_APP_ID,
+            // The client_secret should be stored as an environment variable and not hardcoded
+            client_secret: process.env.DERIV_CLIENT_SECRET || '', 
+            redirect_uri: process.env.REDIRECT_URI || 'https://derivedge.vercel.app/callback'
+        }),
     });
+    
+    if (!tokenResponse.ok) {
+        const errorBody = await tokenResponse.text();
+        console.error("Failed to exchange code for token:", errorBody);
+        return NextResponse.json({ error: "token_exchange_failed" }, { status: 400 });
+    }
 
-    // Securely set cookies for the session
+    const tokenData = await tokenResponse.json();
+    const { access_token, loginid_list } = tokenData;
+    
+    if (!access_token || !loginid_list) {
+         console.error("Token or account list missing from token exchange response");
+        return NextResponse.json({ error: "auth_failed" }, { status: 400 });
+    }
+
+    const accounts: DerivAccount[] = loginid_list.map((acc: any) => ({
+        loginid: acc.loginid,
+        is_virtual: acc.is_virtual,
+        currency: acc.currency,
+        account_type: acc.account_type,
+        account_category: acc.account_category,
+        is_disabled: acc.is_disabled,
+        created_at: acc.created_at,
+        landing_company_name: acc.landing_company_name
+    }));
+
     const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV !== 'development',
@@ -60,19 +82,16 @@ export async function GET(req: NextRequest) {
         sameSite: 'lax',
     } as const;
 
-    cookieStore.set(OAUTH_TOKEN_COOKIE_NAME, token, cookieOptions);
+    cookieStore.set(OAUTH_TOKEN_COOKIE_NAME, access_token, cookieOptions);
     cookieStore.set(ACCOUNTS_COOKIE_NAME, JSON.stringify(accounts), cookieOptions);
 
-    // Select the first real account, or the first account if none are real
     const accountToSelect = accounts.find(acc => !acc.is_virtual) || accounts[0];
     if (accountToSelect) {
         cookieStore.set(SELECTED_ACCOUNT_COOKIE_NAME, JSON.stringify(accountToSelect), cookieOptions);
     }
     
-    // User has logged in, so simulation mode should be off
     cookieStore.set(SIM_MODE_COOKIE_NAME, 'false', cookieOptions);
 
-    // Return a success response. The client will then redirect.
     return NextResponse.json({ success: true });
 
   } catch (error) {
