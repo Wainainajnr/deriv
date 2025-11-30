@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthProvider";
 import { Loader2 } from "lucide-react";
 import { DerivAccount } from "@/types/deriv";
 
-export default function OauthCallbackPage() {
+export default function CallbackPage() {
   const router = useRouter();
   const { setTokenAndAccounts } = useAuth();
 
