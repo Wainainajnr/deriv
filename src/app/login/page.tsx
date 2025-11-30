@@ -36,10 +36,9 @@ export default function LoginPage() {
         <CardFooter>
           <Alert>
             <Terminal className="h-4 w-4" />
-            <AlertTitle>Getting a 403 Error?</AlertTitle>
+            <AlertTitle>Important: Set Your Callback URL</AlertTitle>
             <AlertDescription>
-              Make sure to add your application's URL to the list of authorized redirect URLs in your Deriv app settings. 
-              For development, this is often `http://localhost:9002/oauth/callback`.
+              To ensure login works on your live site, add `https://derivedge.vercel.app/oauth/callback` to the authorized redirect URLs in your Deriv app settings.
             </AlertDescription>
           </Alert>
         </CardFooter>
