@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthProvider";
 import { Loader2 } from "lucide-react";
 import { DerivAccount } from "@/types/deriv";
 
+const OAUTH_STATE_KEY = "deriv_oauth_state";
+
 export default function CallbackPage() {
   const router = useRouter();
   const { setTokenAndAccounts } = useAuth();
@@ -16,6 +18,17 @@ export default function CallbackPage() {
       const params = new URLSearchParams(hash);
       const token = params.get("token");
       const accountListStr = params.get("loginid_list");
+      const state = params.get("state");
+
+      const savedState = localStorage.getItem(OAUTH_STATE_KEY);
+
+      if (state !== savedState) {
+          console.error("OAuth state mismatch. Possible CSRF attack.");
+          router.replace("/login?error=state_mismatch");
+          return;
+      }
+      localStorage.removeItem(OAUTH_STATE_KEY);
+
 
       if (token && accountListStr) {
         const accounts: DerivAccount[] = accountListStr.split('+').map(accStr => {
@@ -32,17 +45,14 @@ export default function CallbackPage() {
             };
         });
         
-        // This is a simplified parsing. A real app should get full details from `authorize` call.
-        // For now, we simulate what we can from the URL.
         const fullAccounts = accounts.map(acc => ({
             ...acc,
-            landing_company_name: acc.is_virtual ? 'virtual' : 'svg' // A common default
+            landing_company_name: acc.is_virtual ? 'virtual' : 'svg'
         }));
 
         setTokenAndAccounts(token, fullAccounts);
         router.replace("/dashboard");
       } else {
-        // Handle error: No token found
         console.error("OAuth callback error: Token or account list not found in URL hash.");
         router.replace("/login?error=auth_failed");
       }

@@ -27,7 +27,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DERIV_APP_ID = process.env.NEXT_PUBLIC_DERIV_APP_ID || "16929"; // Replace with your actual App ID
+const DERIV_APP_ID = process.env.NEXT_PUBLIC_DERIV_APP_ID || "16929"; 
+const OAUTH_STATE_KEY = "deriv_oauth_state";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
@@ -47,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (storedSimMode !== null) {
         setIsSimulationMode(JSON.parse(storedSimMode));
       } else {
-        // If no sim mode is stored, default to true unless a token is present
         setIsSimulationMode(!storedToken);
       }
 
@@ -63,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Failed to parse auth data from localStorage", error);
-      // Clear corrupted data
       localStorage.removeItem("deriv_token");
       localStorage.removeItem("deriv_accounts");
       localStorage.removeItem("deriv_selected_account");
@@ -76,7 +75,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = () => {
     localStorage.setItem("deriv_sim_mode", JSON.stringify(false));
     setIsSimulationMode(false);
-    const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${DERIV_APP_ID}&l=EN&brand=deriv`;
+
+    // Generate a random string for the state parameter for CSRF protection
+    const state =
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
+    localStorage.setItem(OAUTH_STATE_KEY, state);
+
+    const params = new URLSearchParams({
+      app_id: DERIV_APP_ID,
+      l: "EN",
+      brand: "deriv",
+      redirect_uri: `${window.location.origin}/callback`,
+      scope: 'read trading information',
+      state: state,
+    });
+    
+    const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
     window.location.href = oauthUrl;
   };
 
@@ -85,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("deriv_token");
     localStorage.removeItem("deriv_accounts");
     localStorage.removeItem("deriv_selected_account");
+    localStorage.removeItem(OAUTH_STATE_KEY);
     setToken(null);
     setAccounts([]);
     setSelectedAccount(null);
@@ -117,12 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const toggleSimulationMode = useCallback(() => {
+  const handleSimModeChange = useCallback(() => {
     const newState = !isSimulationMode;
     localStorage.setItem("deriv_sim_mode", JSON.stringify(newState));
     setIsSimulationMode(newState);
-    window.location.reload();
-  }, [isSimulationMode]);
+    if (newState || ( !newState && !token)) {
+      window.location.reload();
+    }
+  }, [isSimulationMode, token]);
+
 
   const value = {
     isLoggedIn: !isLoading && !!token && !isSimulationMode,
@@ -135,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     selectAccount,
     setTokenAndAccounts,
     isSimulationMode,
-    toggleSimulationMode,
+    toggleSimulationMode: handleSimModeChange,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

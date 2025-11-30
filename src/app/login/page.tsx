@@ -38,7 +38,7 @@ export default function LoginPage() {
             <Terminal className="h-4 w-4" />
             <AlertTitle>Important: Set Your Callback URL</AlertTitle>
             <AlertDescription>
-              To ensure login works on your live site, add `https://derivedge.vercel.app/callback` to the authorized redirect URLs in your Deriv app settings.
+              To ensure login works, add `https://derivedge.vercel.app/callback` to the authorized redirect URLs in your Deriv app settings.
             </AlertDescription>
           </Alert>
         </CardFooter>
