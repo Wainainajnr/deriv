@@ -5,7 +5,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import type { DerivMessage } from '@/types/deriv';
-
 import { DERIV_APP_ID } from '@/config';
 
 const DERIV_WEBSOCKET_URL = `wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`;
@@ -13,6 +12,7 @@ const DERIV_WEBSOCKET_URL = `wss://ws.derivws.com/websockets/v3?app_id=${DERIV_A
 export const useDerivWebSocket = () => {
     const ws = useRef<WebSocket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [isAuthorized, setIsAuthorized] = useState(false);
     const [lastMessage, setLastMessage] = useState<DerivMessage | null>(null);
     const { token, isLoggedIn } = useAuth();
     const { toast } = useToast();
@@ -49,6 +49,11 @@ export const useDerivWebSocket = () => {
             const message: DerivMessage = JSON.parse(event.data);
             setLastMessage(message);
 
+            if (message.msg_type === 'authorize') {
+                setIsAuthorized(true);
+                console.log("WebSocket authorized successfully");
+            }
+
             if ('error' in message && message.error) {
                 console.error("WebSocket Error:", message.error);
                 console.error("Full error message:", JSON.stringify(message.error, null, 2));
@@ -74,6 +79,7 @@ export const useDerivWebSocket = () => {
         ws.current.onclose = () => {
             console.log("WebSocket disconnected");
             setIsConnected(false);
+            setIsAuthorized(false);
             // Auto-reconnect logic
             setTimeout(() => {
                 console.log("Reconnecting WebSocket...");
@@ -124,5 +130,5 @@ export const useDerivWebSocket = () => {
         messageCallbacks.current.set(type, callback);
     }, []);
 
-    return { isConnected, lastMessage, sendMessage, subscribe };
+    return { isConnected, isAuthorized, lastMessage, sendMessage, subscribe };
 };

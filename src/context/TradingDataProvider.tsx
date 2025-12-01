@@ -30,7 +30,7 @@ interface TradingDataContextType {
 const TradingDataContext = createContext<TradingDataContextType | undefined>(undefined);
 
 export function TradingDataProvider({ children }: { children: ReactNode }) {
-  const { isConnected, sendMessage, subscribe } = useDerivWebSocket();
+  const { isConnected, isAuthorized, sendMessage, subscribe } = useDerivWebSocket();
   const { selectedAccount, token, isLoggedIn } = useAuth();
   const [symbol, setSymbolState] = useState('R_100');
   const [strategy, setStrategy] = useState<Strategy>('strategy1');
@@ -62,18 +62,18 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   // Subscribe to public ticks data as soon as connected
   useEffect(() => {
     if (isConnected) {
-        sendMessage({ ticks: symbol });
+      sendMessage({ ticks: symbol });
     }
   }, [isConnected, symbol, sendMessage]);
 
-  // Subscribe to private, authenticated data only when logged in
+  // Subscribe to private, authenticated data only when authorized
   useEffect(() => {
-    if (isConnected && isLoggedIn) {
-        sendMessage({ balance: 1, subscribe: 1 });
-        sendMessage({ portfolio: 1 });
-        sendMessage({ transaction: 1, subscribe: 1 });
+    if (isAuthorized && isLoggedIn) {
+      sendMessage({ balance: 1, subscribe: 1 });
+      sendMessage({ portfolio: 1 });
+      sendMessage({ transaction: 1, subscribe: 1 });
     }
-  }, [isConnected, isLoggedIn, sendMessage]);
+  }, [isAuthorized, isLoggedIn, sendMessage]);
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -84,13 +84,13 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
         setCurrency(authMsg.authorize.currency);
       }
     });
-    
+
     subscribe('balance', (msg) => {
-        const balanceMsg = msg as BalanceResponse;
-        if (balanceMsg.balance && balanceMsg.balance.loginid === selectedAccount?.loginid) {
-            setBalance(balanceMsg.balance.balance);
-            setCurrency(balanceMsg.balance.currency);
-        }
+      const balanceMsg = msg as BalanceResponse;
+      if (balanceMsg.balance && balanceMsg.balance.loginid === selectedAccount?.loginid) {
+        setBalance(balanceMsg.balance.balance);
+        setCurrency(balanceMsg.balance.currency);
+      }
     });
 
     subscribe('tick', (msg) => {
@@ -101,25 +101,25 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     });
 
     subscribe('portfolio', (msg) => {
-        const portfolioMsg = msg as PortfolioResponse;
-        if (portfolioMsg.portfolio) {
-            setActiveContracts(portfolioMsg.portfolio.contracts);
-        }
+      const portfolioMsg = msg as PortfolioResponse;
+      if (portfolioMsg.portfolio) {
+        setActiveContracts(portfolioMsg.portfolio.contracts);
+      }
     });
-    
+
     subscribe('transaction', (msg) => {
-        const transactionMsg = msg as TransactionResponse;
-        if (transactionMsg.transaction && transactionMsg.transaction.action === 'sell') {
-             const contract = activeContracts.find(c => c.contract_id === transactionMsg.transaction.contract_id);
-             if (contract) {
-                const profit = transactionMsg.transaction.amount - contract.buy_price;
-                setLastTradeResult({
-                    status: profit >= 0 ? 'won' : 'lost',
-                    profit,
-                });
-             }
-             sendMessage({ portfolio: 1 }); // Refresh portfolio
+      const transactionMsg = msg as TransactionResponse;
+      if (transactionMsg.transaction && transactionMsg.transaction.action === 'sell') {
+        const contract = activeContracts.find(c => c.contract_id === transactionMsg.transaction.contract_id);
+        if (contract) {
+          const profit = transactionMsg.transaction.amount - contract.buy_price;
+          setLastTradeResult({
+            status: profit >= 0 ? 'won' : 'lost',
+            profit,
+          });
         }
+        sendMessage({ portfolio: 1 }); // Refresh portfolio
+      }
     });
 
   }, [subscribe, sendMessage, selectedAccount, activeContracts, symbol]);
@@ -128,25 +128,25 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     const newAnalysis = analyzeDigits(ticks, strategy);
     setAnalysis(newAnalysis);
   }, [ticks, strategy]);
-  
+
   const buyContract = useCallback((contractType: 'DIGITEVEN' | 'DIGITODD', stake: number) => {
-      if (!isLoggedIn) {
-          toast({ title: "Please log in to trade.", variant: "destructive" });
-          return;
+    if (!isLoggedIn) {
+      toast({ title: "Please log in to trade.", variant: "destructive" });
+      return;
+    }
+    sendMessage({
+      buy: "1",
+      price: stake,
+      parameters: {
+        amount: stake,
+        basis: 'stake',
+        contract_type: contractType,
+        currency: currency,
+        duration: 1,
+        duration_unit: 't',
+        symbol: symbol,
       }
-      sendMessage({
-          buy: "1",
-          price: stake,
-          parameters: {
-              amount: stake,
-              basis: 'stake',
-              contract_type: contractType,
-              currency: currency,
-              duration: 1,
-              duration_unit: 't',
-              symbol: symbol,
-          }
-      });
+    });
   }, [sendMessage, currency, symbol, isLoggedIn, toast]);
 
   const value = {
