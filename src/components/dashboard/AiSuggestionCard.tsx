@@ -161,7 +161,9 @@ export function AiSuggestionCard() {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to get AI suggestion');
+          const errorData = await response.json().catch(() => ({}));
+          console.error("API Error Details:", errorData);
+          throw new Error(errorData.error || 'Failed to get AI suggestion');
         }
 
         const result = await response.json();
