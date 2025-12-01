@@ -84,7 +84,7 @@ const automatedTradeSuggestionsFlow = ai.defineFlow(
     outputSchema: AutomatedTradeSuggestionsOutputSchema,
   },
   async input => {
-    const { output } = await prompt(input, { model: 'googleai/gemini-1.5-flash' });
+    const { output } = await prompt(input, { model: 'googleai/gemini-1.5-flash-latest' });
     return output!;
   }
 );

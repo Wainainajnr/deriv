@@ -6,7 +6,9 @@ import { useAuth } from '@/context/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import type { DerivMessage } from '@/types/deriv';
 
-const DERIV_WEBSOCKET_URL = "wss://ws.derivws.com/websockets/v3?app_id=16929";
+import { DERIV_APP_ID } from '@/config';
+
+const DERIV_WEBSOCKET_URL = `wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`;
 
 export const useDerivWebSocket = () => {
     const ws = useRef<WebSocket | null>(null);
