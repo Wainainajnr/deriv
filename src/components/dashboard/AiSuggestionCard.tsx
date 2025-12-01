@@ -111,11 +111,23 @@ export function AiSuggestionCard() {
   }, [analysis, strategy]);
 
   useEffect(() => {
-    if (isTradeSignalActive && !prevSignalState.current && isSoundEnabled) {
-      playSound();
+    if (isTradeSignalActive && !prevSignalState.current) {
+      if (isSoundEnabled) {
+        if (audioContextRef.current?.state === 'suspended') {
+          audioContextRef.current.resume();
+        }
+        playSound();
+      }
+
+      // Visual notification
+      toast({
+        title: "Trade Signal Active!",
+        description: strategy === 'strategy1' ? suggestion?.tradeSuggestion : analysis.entryCondition,
+        className: "bg-green-500 text-white border-none",
+      });
     }
     prevSignalState.current = isTradeSignalActive;
-  }, [isTradeSignalActive, isSoundEnabled]);
+  }, [isTradeSignalActive, isSoundEnabled, strategy, suggestion, analysis, toast]);
 
   const handleTrade = () => {
     // This is the user gesture that allows the AudioContext to start
