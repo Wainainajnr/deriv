@@ -13,7 +13,6 @@ import { useRouter } from "next/navigation";
 import type { DerivAccount } from "@/types/deriv";
 import { getCookie, deleteCookie, setCookie } from "cookies-next";
 
-const OAUTH_TOKEN_COOKIE_NAME = "deriv_oauth_token";
 const ACCOUNTS_COOKIE_NAME = "deriv_accounts";
 const SELECTED_ACCOUNT_COOKIE_NAME = "deriv_selected_account";
 
@@ -31,7 +30,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<DerivAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<DerivAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,24 +38,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Read auth state from cookies
     try {
-      const storedToken = getCookie(OAUTH_TOKEN_COOKIE_NAME);
       const storedAccounts = getCookie(ACCOUNTS_COOKIE_NAME);
       const storedSelectedAccount = getCookie(SELECTED_ACCOUNT_COOKIE_NAME);
 
-      if (storedToken) {
-         setToken(storedToken);
-         const parsedAccounts: DerivAccount[] = storedAccounts ? JSON.parse(storedAccounts) : [];
-         setAccounts(parsedAccounts);
-         if (storedSelectedAccount) {
-            setSelectedAccount(JSON.parse(storedSelectedAccount));
-         } else if (parsedAccounts.length > 0) {
-            setSelectedAccount(parsedAccounts[0]);
-         }
+      if (storedAccounts) {
+        const parsedAccounts: DerivAccount[] = JSON.parse(storedAccounts);
+        setAccounts(parsedAccounts);
+        if (storedSelectedAccount) {
+          setSelectedAccount(JSON.parse(storedSelectedAccount));
+        } else if (parsedAccounts.length > 0) {
+          setSelectedAccount(parsedAccounts[0]);
+        }
       }
     } catch (error) {
       console.error("Failed to parse auth data from cookies", error);
       // Clear potentially corrupted cookies
-      deleteCookie(OAUTH_TOKEN_COOKIE_NAME);
       deleteCookie(ACCOUNTS_COOKIE_NAME);
       deleteCookie(SELECTED_ACCOUNT_COOKIE_NAME);
     } finally {
@@ -69,15 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Redirect to our server-side login route handler, which will then redirect to Deriv
     window.location.href = '/api/auth/login';
   };
-  
+
   const logout = useCallback(() => {
     setIsLoading(true);
     // Clear all auth-related cookies
-    deleteCookie(OAUTH_TOKEN_COOKIE_NAME, { path: '/' });
     deleteCookie(ACCOUNTS_COOKIE_NAME, { path: '/' });
     deleteCookie(SELECTED_ACCOUNT_COOKIE_NAME, { path: '/' });
-    
-    setToken(null);
+
     setAccounts([]);
     setSelectedAccount(null);
     setIsLoading(false);
@@ -90,12 +83,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Set the new selected account in a cookie and reload to apply it everywhere
       setCookie(SELECTED_ACCOUNT_COOKIE_NAME, JSON.stringify(account), { path: '/' });
       setSelectedAccount(account);
-      window.location.reload(); 
+      window.location.reload();
     }
   };
 
+  // Token comes from the selected account
+  const token = selectedAccount?.token || null;
+
   const value = {
-    isLoggedIn: !isLoading && !!token,
+    isLoggedIn: !isLoading && !!token && accounts.length > 0,
     isLoading,
     token,
     accounts,
