@@ -27,14 +27,15 @@ export const useDerivWebSocket = () => {
         ws.current.onopen = () => {
             console.log("WebSocket connected");
             setIsConnected(true);
-            
+
             // Authorize if logged in
             if (token && isLoggedIn) {
+                console.log("Authorizing WebSocket with token:", token.substring(0, 10) + "...");
                 ws.current?.send(JSON.stringify({ authorize: token }));
             }
-            
+
             // Send any queued messages
-            while(messageQueue.current.length > 0) {
+            while (messageQueue.current.length > 0) {
                 const message = messageQueue.current.shift();
                 if (message) {
                     ws.current?.send(JSON.stringify(message));
@@ -48,11 +49,17 @@ export const useDerivWebSocket = () => {
 
             if ('error' in message && message.error) {
                 console.error("WebSocket Error:", message.error);
-                toast({
-                    variant: "destructive",
-                    title: "Deriv API Error",
-                    description: (message.error as any).message || "An unknown error occurred.",
-                });
+                console.error("Full error message:", JSON.stringify(message.error, null, 2));
+
+                // Only show toast for non-authorization errors to avoid spam
+                const errorMsg = (message.error as any).message || "An unknown error occurred.";
+                if (!errorMsg.includes("InvalidToken") && !errorMsg.includes("authorize")) {
+                    toast({
+                        variant: "destructive",
+                        title: "Deriv API Error",
+                        description: errorMsg,
+                    });
+                }
             }
 
             // General callbacks for message types
@@ -86,7 +93,7 @@ export const useDerivWebSocket = () => {
 
     useEffect(() => {
         connect();
-        
+
         const interval = setInterval(() => {
             if (ws.current?.readyState === WebSocket.OPEN) {
                 ws.current.send(JSON.stringify({ ping: 1 }));
