@@ -15,66 +15,65 @@ export default function CallbackPage() {
 
   useEffect(() => {
     try {
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        
-        const token = params.get("token");
-        const loginid_list = params.get("loginid_list");
-        const state = params.get("state");
-        const error = params.get("error");
-        
-        if (error) {
-            console.error("OAuth callback error:", error);
-            router.replace(`/login?error=${error}`);
-            return;
-        }
-        
-        const savedState = getCookie(OAUTH_STATE_COOKIE_NAME);
-        deleteCookie(OAUTH_STATE_COOKIE_NAME); // Clean up state cookie
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
 
-        if (!state || !savedState || state !== savedState) {
-            console.error("OAuth state mismatch. Possible CSRF attack.");
-            router.replace('/login?error=state_mismatch');
-            return;
-        }
+      const token = params.get("token");
+      const loginid_list = params.get("loginid_list");
+      const state = params.get("state");
+      const error = params.get("error");
 
-        if (!token || !loginid_list) {
-            console.error("Token or account list missing from callback.");
-            router.replace('/login?error=auth_failed');
-            return;
-        }
+      if (error) {
+        console.error("OAuth callback error:", error);
+        router.replace(`/login?error=${error}`);
+        return;
+      }
 
-        const accounts = loginid_list.split('+').map(accStr => {
-            const [loginid, account_type, currency] = accStr.split(':');
-            return {
-                loginid,
-                account_category: account_type === 'real' ? 'real' : 'demo',
-                is_virtual: account_type === 'demo' ? 1 : 0,
-                currency,
-            };
-        });
+      const savedState = getCookie(OAUTH_STATE_COOKIE_NAME);
+      deleteCookie(OAUTH_STATE_COOKIE_NAME); // Clean up state cookie
 
-        const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV !== 'development',
-            maxAge: 60 * 60 * 24 * 7, // 1 week
-            path: '/',
-            sameSite: 'lax',
-        } as const;
+      if (!state || !savedState || state !== savedState) {
+        console.error("OAuth state mismatch. Possible CSRF attack.");
+        router.replace('/login?error=state_mismatch');
+        return;
+      }
 
-        setCookie(OAUTH_TOKEN_COOKIE_NAME, token, cookieOptions);
-        setCookie(ACCOUNTS_COOKIE_NAME, JSON.stringify(accounts), cookieOptions);
+      if (!token || !loginid_list) {
+        console.error("Token or account list missing from callback.");
+        router.replace('/login?error=auth_failed');
+        return;
+      }
 
-        const accountToSelect = accounts.find(acc => !acc.is_virtual) || accounts.find(acc => acc.is_virtual) || accounts[0];
-        if (accountToSelect) {
-            setCookie(SELECTED_ACCOUNT_COOKIE_NAME, JSON.stringify(accountToSelect), cookieOptions);
-        }
+      const accounts = loginid_list.split('+').map(accStr => {
+        const [loginid, account_type, currency] = accStr.split(':');
+        return {
+          loginid,
+          account_category: account_type === 'real' ? 'real' : 'demo',
+          is_virtual: account_type === 'demo' ? 1 : 0,
+          currency,
+        };
+      });
 
-        router.replace("/");
+      const cookieOptions = {
+        secure: process.env.NODE_ENV !== 'development',
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        path: '/',
+        sameSite: 'lax',
+      } as const;
+
+      setCookie(OAUTH_TOKEN_COOKIE_NAME, token, cookieOptions);
+      setCookie(ACCOUNTS_COOKIE_NAME, JSON.stringify(accounts), cookieOptions);
+
+      const accountToSelect = accounts.find(acc => !acc.is_virtual) || accounts.find(acc => acc.is_virtual) || accounts[0];
+      if (accountToSelect) {
+        setCookie(SELECTED_ACCOUNT_COOKIE_NAME, JSON.stringify(accountToSelect), cookieOptions);
+      }
+
+      router.replace("/");
 
     } catch (e) {
-        console.error("Error processing OAuth callback:", e);
-        router.replace('/login?error=callback_processing_failed');
+      console.error("Error processing OAuth callback:", e);
+      router.replace('/login?error=callback_processing_failed');
     }
 
   }, [router]);
