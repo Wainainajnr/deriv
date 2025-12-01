@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
         // Initialize the Google AI SDK
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // Get the model - try gemini-pro as fallback
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        // Get the model - using gemini-1.0-pro (free tier compatible)
+        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
 
         // Build the prompt
         const prompt = `You are an expert trading advisor specializing in Even/Odd digit trading on the Deriv platform. Analyze the provided real-time market data and provide a trade suggestion, a confidence level, and a detailed reasoning.
