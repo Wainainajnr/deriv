@@ -2,14 +2,18 @@
 
 /**
  * @fileOverview Provides automated trade suggestions for Even/Odd trades based on real-time market data analysis using an LLM.
+'use server';
+
+/**
+ * @fileOverview Provides automated trade suggestions for Even/Odd trades based on real-time market data analysis using an LLM.
  *
  * - automatedTradeSuggestions - A function that generates trade suggestions.
  * - AutomatedTradeSuggestionsInput - The input type for the automatedTradeSuggestions function.
  * - AutomatedTradeSuggestionsOutput - The return type for the automatedTradeSuggestions function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const AutomatedTradeSuggestionsInputSchema = z.object({
   evenOddPercentage: z
@@ -58,8 +62,8 @@ export async function automatedTradeSuggestions(
 
 const prompt = ai.definePrompt({
   name: 'automatedTradeSuggestionsPrompt',
-  input: {schema: AutomatedTradeSuggestionsInputSchema},
-  output: {schema: AutomatedTradeSuggestionsOutputSchema},
+  input: { schema: AutomatedTradeSuggestionsInputSchema },
+  output: { schema: AutomatedTradeSuggestionsOutputSchema },
   prompt: `You are an expert trading advisor specializing in Even/Odd digit trading on the Deriv platform. Analyze the provided real-time market data and provide a trade suggestion, a confidence level, and a detailed reasoning.
 
 Data:
@@ -80,7 +84,7 @@ const automatedTradeSuggestionsFlow = ai.defineFlow(
     outputSchema: AutomatedTradeSuggestionsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input, { model: 'gemini-1.5-flash' });
+    const { output } = await prompt(input, { model: 'googleai/gemini-1.5-flash' });
     return output!;
   }
 );
