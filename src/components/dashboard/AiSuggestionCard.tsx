@@ -18,13 +18,34 @@ export function AiSuggestionCard() {
   const { toast } = useToast();
 
   const audioContextRef = useRef<AudioContext | null>(null);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(false);
+  const prevSignalState = useRef(false);
 
   const isTradeSignalActive = (strategy === 'strategy1' && suggestion?.tradeSuggestion !== 'NO ENTRY') || (strategy === 'strategy2' && analysis.entryCondition !== 'NO ENTRY');
-  const prevSignalState = useRef(false);
+
+  const createAudioContext = () => {
+    if (!audioContextRef.current) {
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      } catch (e) {
+        console.error("Web Audio API is not supported in this browser.", e);
+      }
+    }
+    if (audioContextRef.current?.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+  }
+
+  const toggleSound = () => {
+    if (!isSoundEnabled) {
+      createAudioContext();
+    }
+    setIsSoundEnabled(!isSoundEnabled);
+  };
 
   const playSound = () => {
     if (!audioContextRef.current || audioContextRef.current.state !== 'running') {
-      console.warn("AudioContext is not available or not running. Cannot play sound.");
+      // console.warn("AudioContext is not available or not running. Cannot play sound.");
       return;
     }
 
@@ -46,19 +67,6 @@ export function AiSuggestionCard() {
       console.error("Could not play sound:", e);
     }
   };
-
-  const createAudioContext = () => {
-    if (!audioContextRef.current) {
-      try {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      } catch (e) {
-        console.error("Web Audio API is not supported in this browser.", e);
-      }
-    }
-    if (audioContextRef.current?.state === 'suspended') {
-      audioContextRef.current.resume();
-    }
-  }
 
   useEffect(() => {
     if (strategy === 'strategy2') {
@@ -103,11 +111,11 @@ export function AiSuggestionCard() {
   }, [analysis, strategy]);
 
   useEffect(() => {
-    if (isTradeSignalActive && !prevSignalState.current) {
+    if (isTradeSignalActive && !prevSignalState.current && isSoundEnabled) {
       playSound();
     }
     prevSignalState.current = isTradeSignalActive;
-  }, [isTradeSignalActive]);
+  }, [isTradeSignalActive, isSoundEnabled]);
 
   const handleTrade = () => {
     // This is the user gesture that allows the AudioContext to start
@@ -227,10 +235,25 @@ export function AiSuggestionCard() {
   return (
     <Card className="glass-card w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="text-primary" />
-          <span>Trade Signal</span>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="text-primary" />
+            <span>Trade Signal</span>
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSound}
+            className={isSoundEnabled ? "text-primary" : "text-muted-foreground"}
+            title={isSoundEnabled ? "Mute Alerts" : "Enable Sound Alerts"}
+          >
+            {isSoundEnabled ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+            )}
+          </Button>
+        </div>
         <CardDescription>
           {strategy === 'strategy1' ? 'Powered by Shakes FX' : 'Manual Signal based on Strategy 2'}
         </CardDescription>
