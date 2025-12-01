@@ -63,7 +63,6 @@ Format your response as JSON with these exact keys:
                     generationConfig: {
                         temperature: 0.7,
                         maxOutputTokens: 1024,
-                        responseMimeType: 'application/json',
                     }
                 })
             }
