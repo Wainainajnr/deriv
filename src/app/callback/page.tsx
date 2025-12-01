@@ -30,10 +30,16 @@ export default function CallbackPage() {
       }
 
       const savedState = getCookie(OAUTH_STATE_COOKIE_NAME);
+
+      console.log("OAuth Debug - State from URL:", state);
+      console.log("OAuth Debug - State from Cookie:", savedState);
+      console.log("OAuth Debug - All cookies:", document.cookie);
+
       deleteCookie(OAUTH_STATE_COOKIE_NAME); // Clean up state cookie
 
       if (!state || !savedState || state !== savedState) {
         console.error("OAuth state mismatch. Possible CSRF attack.");
+        console.error("Expected:", savedState, "Got:", state);
         router.replace('/login?error=state_mismatch');
         return;
       }
