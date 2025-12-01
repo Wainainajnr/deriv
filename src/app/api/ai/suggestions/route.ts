@@ -45,7 +45,7 @@ Format your response as JSON with these exact keys:
 
         // Call Gemini API directly
         const geminiResponse = await fetch(
-            'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent',
+            'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
             {
                 method: 'POST',
                 headers: {
