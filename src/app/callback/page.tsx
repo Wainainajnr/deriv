@@ -15,13 +15,18 @@ export default function CallbackPage() {
 
   useEffect(() => {
     try {
+      // Parse both hash fragment and query string
+      // Deriv returns tokens in hash, but state might be in query string
       const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
+      const hashParams = new URLSearchParams(hash);
+      const queryParams = new URLSearchParams(window.location.search);
 
-      const token = params.get("token");
-      const loginid_list = params.get("loginid_list");
-      const state = params.get("state");
-      const error = params.get("error");
+      const token = hashParams.get("token");
+      const loginid_list = hashParams.get("loginid_list");
+
+      // Check both hash and query string for state
+      const state = hashParams.get("state") || queryParams.get("state");
+      const error = hashParams.get("error") || queryParams.get("error");
 
       if (error) {
         console.error("OAuth callback error:", error);
@@ -31,6 +36,9 @@ export default function CallbackPage() {
 
       const savedState = getCookie(OAUTH_STATE_COOKIE_NAME);
 
+      console.log("OAuth Debug - Full URL:", window.location.href);
+      console.log("OAuth Debug - Hash fragment:", window.location.hash);
+      console.log("OAuth Debug - Query string:", window.location.search);
       console.log("OAuth Debug - State from URL:", state);
       console.log("OAuth Debug - State from Cookie:", savedState);
       console.log("OAuth Debug - All cookies:", document.cookie);
