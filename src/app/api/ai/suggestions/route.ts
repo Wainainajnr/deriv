@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(req: NextRequest) {
     try {
@@ -22,6 +23,12 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Initialize the Google AI SDK
+        const genAI = new GoogleGenerativeAI(apiKey);
+
+        // Get the model - try gemini-pro as fallback
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
         // Build the prompt
         const prompt = `You are an expert trading advisor specializing in Even/Odd digit trading on the Deriv platform. Analyze the provided real-time market data and provide a trade suggestion, a confidence level, and a detailed reasoning.
 
@@ -43,61 +50,19 @@ Format your response as JSON with these exact keys:
   "reasoning": "your detailed explanation here"
 }`;
 
-        // Call Gemini API directly
-        const geminiResponse = await fetch(
-            'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey,
-                },
-                body: JSON.stringify({
-                    contents: [
-                        {
-                            parts: [
-                                { text: prompt }
-                            ]
-                        }
-                    ],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 1024,
-                    }
-                })
-            }
-        );
+        // Generate content
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const generatedText = response.text();
 
-        if (!geminiResponse.ok) {
-            const errorText = await geminiResponse.text();
-            console.error('Gemini API Error:', errorText);
-            return NextResponse.json(
-                { error: `Gemini API error: ${geminiResponse.status} - ${errorText}` },
-                { status: 500 }
-            );
-        }
-
-        const geminiData = await geminiResponse.json();
-
-        // Extract the text response
-        const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!generatedText) {
-            console.error('No text in Gemini response:', geminiData);
-            return NextResponse.json(
-                { error: 'Invalid response from Gemini API' },
-                { status: 500 }
-            );
-        }
-
-        // Parse the JSON response from Gemini
-        let result;
+        // Parse the JSON response
+        let parsedResult;
         try {
-            result = JSON.parse(generatedText);
+            parsedResult = JSON.parse(generatedText);
         } catch (parseError) {
-            console.error('Failed to parse Gemini response as JSON:', generatedText);
-            // Fallback: extract values manually if JSON parsing fails
-            result = {
+            console.error('Failed to parse AI response as JSON:', generatedText);
+            // Fallback: extract values manually
+            parsedResult = {
                 tradeSuggestion: generatedText.includes('ENTER EVEN') ? 'ENTER EVEN NOW' :
                     generatedText.includes('ENTER ODD') ? 'ENTER ODD NOW' : 'NO ENTRY',
                 confidenceLevel: generatedText.toLowerCase().includes('high') ? 'high' :
@@ -106,7 +71,7 @@ Format your response as JSON with these exact keys:
             };
         }
 
-        return NextResponse.json(result);
+        return NextResponse.json(parsedResult);
 
     } catch (error) {
         console.error('Error in AI suggestions API:', error);
