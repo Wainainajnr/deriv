@@ -10,6 +10,15 @@ import { useToast } from '@/hooks/use-toast';
 
 const MAX_TICKS = 100;
 
+interface TradeResult {
+  contract_id: number;
+  profit: number;
+  status: 'won' | 'lost';
+  buy_price: number;
+  payout: number;
+  transaction_time: number;
+}
+
 interface TradingDataContextType {
   isConnected: boolean;
   symbol: string;
@@ -25,6 +34,8 @@ interface TradingDataContextType {
   activeContracts: OpenContract[];
   buyContract: (contractType: 'DIGITEVEN' | 'DIGITODD', stake: number) => void;
   lastTradeResult: { status: 'won' | 'lost', profit: number } | null;
+  tradeHistory: TradeResult[];
+  sessionProfit: number;
 }
 
 const TradingDataContext = createContext<TradingDataContextType | undefined>(undefined);
@@ -49,6 +60,8 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrency] = useState('USD');
   const [activeContracts, setActiveContracts] = useState<OpenContract[]>([]);
   const [lastTradeResult, setLastTradeResult] = useState<{ status: 'won' | 'lost', profit: number } | null>(null);
+  const [tradeHistory, setTradeHistory] = useState<TradeResult[]>([]);
+  const [sessionProfit, setSessionProfit] = useState(0);
 
   const { toast } = useToast();
 
@@ -113,10 +126,18 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
         const contract = activeContracts.find(c => c.contract_id === transactionMsg.transaction.contract_id);
         if (contract) {
           const profit = transactionMsg.transaction.amount - contract.buy_price;
-          setLastTradeResult({
-            status: profit >= 0 ? 'won' : 'lost',
+          const status = profit >= 0 ? 'won' : 'lost';
+
+          setLastTradeResult({ status, profit });
+          setSessionProfit(prev => prev + profit);
+          setTradeHistory(prev => [{
+            contract_id: contract.contract_id,
             profit,
-          });
+            status,
+            buy_price: contract.buy_price,
+            payout: transactionMsg.transaction.amount,
+            transaction_time: transactionMsg.transaction.transaction_time,
+          }, ...prev]);
         }
         sendMessage({ portfolio: 1 }); // Refresh portfolio
       }
@@ -164,6 +185,8 @@ export function TradingDataProvider({ children }: { children: ReactNode }) {
     activeContracts,
     buyContract,
     lastTradeResult,
+    tradeHistory,
+    sessionProfit,
   };
 
   return <TradingDataContext.Provider value={value}>{children}</TradingDataContext.Provider>;

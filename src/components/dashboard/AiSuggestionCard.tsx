@@ -4,6 +4,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useTradingData } from "@/context/TradingDataProvider";
 import type { AutomatedTradeSuggestionsOutput } from "@/ai/flows/automated-trade-suggestions";
 import { Loader2, Zap } from "lucide-react";
@@ -11,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthProvider";
 
 export function AiSuggestionCard() {
-  const { analysis, buyContract, strategy, stake } = useTradingData();
+  const { analysis, buyContract, strategy, stake, sessionProfit } = useTradingData();
   const { isLoggedIn, login } = useAuth();
   const [suggestion, setSuggestion] = useState<AutomatedTradeSuggestionsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +21,8 @@ export function AiSuggestionCard() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
   const [isAutoTradingEnabled, setIsAutoTradingEnabled] = useState(false);
+  const [takeProfit, setTakeProfit] = useState('10');
+  const [stopLoss, setStopLoss] = useState('10');
   const prevSignalState = useRef(false);
 
   const isTradeSignalActive = (strategy === 'strategy1' && suggestion?.tradeSuggestion !== 'NO ENTRY') || (strategy === 'strategy2' && analysis.entryCondition !== 'NO ENTRY');
@@ -198,13 +201,38 @@ export function AiSuggestionCard() {
         className: "bg-green-500 text-white border-none",
       });
 
-      // Auto-Trading Logic
+      // Auto-Trading Logic with TP/SL
       if (isAutoTradingEnabled) {
+        const tpValue = parseFloat(takeProfit);
+        const slValue = parseFloat(stopLoss);
+
+        // Check Take Profit
+        if (!isNaN(tpValue) && sessionProfit >= tpValue) {
+          setIsAutoTradingEnabled(false);
+          toast({
+            title: "Take Profit Reached!",
+            description: `Session profit of ${sessionProfit.toFixed(2)} reached your target of ${tpValue}. Auto-trading disabled.`,
+            className: "bg-green-600 text-white border-none",
+          });
+          return;
+        }
+
+        // Check Stop Loss
+        if (!isNaN(slValue) && sessionProfit <= -slValue) {
+          setIsAutoTradingEnabled(false);
+          toast({
+            title: "Stop Loss Triggered!",
+            description: `Session loss of ${sessionProfit.toFixed(2)} exceeded your limit of -${slValue}. Auto-trading disabled.`,
+            variant: "destructive",
+          });
+          return;
+        }
+
         handleTrade();
       }
     }
     prevSignalState.current = isTradeSignalActive;
-  }, [isTradeSignalActive, isSoundEnabled, strategy, suggestion, analysis, toast, isAutoTradingEnabled]);
+  }, [isTradeSignalActive, isSoundEnabled, strategy, suggestion, analysis, toast, isAutoTradingEnabled, sessionProfit, takeProfit, stopLoss]);
 
   const getSuggestionColor = () => {
     if (strategy === 'strategy1' && suggestion) {
@@ -311,6 +339,40 @@ export function AiSuggestionCard() {
       </CardHeader>
       <CardContent>
         {renderContent()}
+
+        {isAutoTradingEnabled && (
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Session Profit/Loss:</span>
+              <span className={`text-sm font-bold ${sessionProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {sessionProfit >= 0 ? '+' : ''}{sessionProfit.toFixed(2)}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Take Profit</label>
+                <Input
+                  type="number"
+                  value={takeProfit}
+                  onChange={(e) => setTakeProfit(e.target.value)}
+                  placeholder="10.00"
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Stop Loss</label>
+                <Input
+                  type="number"
+                  value={stopLoss}
+                  onChange={(e) => setStopLoss(e.target.value)}
+                  placeholder="10.00"
+                  className="h-8"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         <Button
           onClick={handleTrade}
           disabled={!isTradeSignalActive}
