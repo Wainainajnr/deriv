@@ -19,6 +19,7 @@ export function AiSuggestionCard() {
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
+  const [isAutoTradingEnabled, setIsAutoTradingEnabled] = useState(false);
   const prevSignalState = useRef(false);
 
   const isTradeSignalActive = (strategy === 'strategy1' && suggestion?.tradeSuggestion !== 'NO ENTRY') || (strategy === 'strategy2' && analysis.entryCondition !== 'NO ENTRY');
@@ -43,9 +44,24 @@ export function AiSuggestionCard() {
     setIsSoundEnabled(!isSoundEnabled);
   };
 
+  const toggleAutoTrading = () => {
+    setIsAutoTradingEnabled(!isAutoTradingEnabled);
+    if (!isAutoTradingEnabled) {
+      toast({
+        title: "Auto-Trading Enabled",
+        description: "Trades will be executed automatically when a signal is detected. Use with caution!",
+        className: "bg-yellow-600 text-white border-none",
+      });
+    } else {
+      toast({
+        title: "Auto-Trading Disabled",
+        description: "Manual trade execution only.",
+      });
+    }
+  };
+
   const playSound = () => {
     if (!audioContextRef.current || audioContextRef.current.state !== 'running') {
-      // console.warn("AudioContext is not available or not running. Cannot play sound.");
       return;
     }
 
@@ -67,6 +83,60 @@ export function AiSuggestionCard() {
       console.error("Could not play sound:", e);
     }
   };
+
+  const handleTrade = () => {
+    // This is the user gesture that allows the AudioContext to start
+    createAudioContext();
+
+    if (!isLoggedIn) {
+      toast({
+        title: "Please Log In",
+        description: "You must connect your Deriv account to execute a trade.",
+        action: <Button onClick={login}>Login</Button>
+      });
+      return;
+    }
+
+    if (parseFloat(stake) < 0.35) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Stake",
+        description: "Minimum stake amount is 0.35.",
+      });
+      return;
+    }
+
+    let contractType: 'DIGITEVEN' | 'DIGITODD' | null = null;
+
+    if (strategy === 'strategy1') {
+      if (suggestion && suggestion.tradeSuggestion === 'ENTER EVEN NOW') {
+        contractType = 'DIGITEVEN';
+      } else if (suggestion && suggestion.tradeSuggestion === 'ENTER ODD NOW') {
+        contractType = 'DIGITODD';
+      }
+    } else if (strategy === 'strategy2') {
+      if (analysis.entryCondition === 'ENTER EVEN NOW') {
+        contractType = 'DIGITEVEN';
+      } else if (analysis.entryCondition === 'ENTER ODD NOW') {
+        contractType = 'DIGITODD';
+      }
+    }
+
+    if (contractType) {
+      buyContract(contractType, parseFloat(stake));
+      toast({
+        title: "Trade Executed",
+        description: `Buying ${contractType} contract for ${stake} USD`,
+        className: "bg-blue-600 text-white border-none",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Trade Error",
+        description: "No valid trade signal to execute.",
+      });
+    }
+  }
 
   useEffect(() => {
     if (strategy === 'strategy2') {
@@ -125,58 +195,14 @@ export function AiSuggestionCard() {
         description: strategy === 'strategy1' ? suggestion?.tradeSuggestion : analysis.entryCondition,
         className: "bg-green-500 text-white border-none",
       });
+
+      // Auto-Trading Logic
+      if (isAutoTradingEnabled) {
+        handleTrade();
+      }
     }
     prevSignalState.current = isTradeSignalActive;
-  }, [isTradeSignalActive, isSoundEnabled, strategy, suggestion, analysis, toast]);
-
-  const handleTrade = () => {
-    // This is the user gesture that allows the AudioContext to start
-    createAudioContext();
-
-    if (!isLoggedIn) {
-      toast({
-        title: "Please Log In",
-        description: "You must connect your Deriv account to execute a trade.",
-        action: <Button onClick={login}>Login</Button>
-      });
-      return;
-    }
-
-    if (parseFloat(stake) < 0.35) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Stake",
-        description: "Minimum stake amount is 0.35.",
-      });
-      return;
-    }
-
-    let contractType: 'DIGITEVEN' | 'DIGITODD' | null = null;
-
-    if (strategy === 'strategy1') {
-      if (suggestion && suggestion.tradeSuggestion === 'ENTER EVEN NOW') {
-        contractType = 'DIGITEVEN';
-      } else if (suggestion && suggestion.tradeSuggestion === 'ENTER ODD NOW') {
-        contractType = 'DIGITODD';
-      }
-    } else if (strategy === 'strategy2') {
-      if (analysis.entryCondition === 'ENTER EVEN NOW') {
-        contractType = 'DIGITEVEN';
-      } else if (analysis.entryCondition === 'ENTER ODD NOW') {
-        contractType = 'DIGITODD';
-      }
-    }
-
-    if (contractType) {
-      buyContract(contractType, parseFloat(stake));
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Trade Error",
-        description: "No valid trade signal to execute.",
-      });
-    }
-  }
+  }, [isTradeSignalActive, isSoundEnabled, strategy, suggestion, analysis, toast, isAutoTradingEnabled]);
 
   const getSuggestionColor = () => {
     if (strategy === 'strategy1' && suggestion) {
@@ -252,19 +278,30 @@ export function AiSuggestionCard() {
             <Zap className="text-primary" />
             <span>Trade Signal</span>
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSound}
-            className={isSoundEnabled ? "text-primary" : "text-muted-foreground"}
-            title={isSoundEnabled ? "Mute Alerts" : "Enable Sound Alerts"}
-          >
-            {isSoundEnabled ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
-            )}
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleAutoTrading}
+              className={isAutoTradingEnabled ? "text-green-500 animate-pulse" : "text-muted-foreground"}
+              title={isAutoTradingEnabled ? "Disable Auto-Trading" : "Enable Auto-Trading"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSound}
+              className={isSoundEnabled ? "text-primary" : "text-muted-foreground"}
+              title={isSoundEnabled ? "Mute Alerts" : "Enable Sound Alerts"}
+            >
+              {isSoundEnabled ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+              )}
+            </Button>
+          </div>
         </div>
         <CardDescription>
           {strategy === 'strategy1' ? 'Powered by Shakes FX' : 'Manual Signal based on Strategy 2'}
